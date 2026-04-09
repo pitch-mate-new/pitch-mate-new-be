@@ -36,3 +36,6 @@ out/
 ### VS Code ###
 .vscode/
 src/main/resources/application.properties
+uploads/
+구현해야할 것/
+.DS_Store
