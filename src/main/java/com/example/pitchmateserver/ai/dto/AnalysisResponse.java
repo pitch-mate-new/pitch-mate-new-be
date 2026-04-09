@@ -1,0 +1,43 @@
+package com.example.pitchmateserver.ai.dto;
+
+import com.example.pitchmateserver.ai.entity.Analysis;
+import lombok.Builder;
+import lombok.Getter;
+
+import java.time.LocalDateTime;
+
+@Getter
+@Builder
+public class AnalysisResponse {
+
+    private Long id;
+    private Long videoId;
+    private String status;
+
+    // 분석 결과 (COMPLETED 상태일 때만 채워짐)
+    private Double speechRateWpm;
+    private Double silenceRatio;
+    private Integer fillerWordCount;
+    private String fillerWords;
+    private Double speakingDurationSeconds;
+
+    private String errorMessage;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+
+    public static AnalysisResponse from(Analysis analysis) {
+        return AnalysisResponse.builder()
+                .id(analysis.getId())
+                .videoId(analysis.getVideo().getId())
+                .status(analysis.getStatus().name())
+                .speechRateWpm(analysis.getSpeechRateWpm())
+                .silenceRatio(analysis.getSilenceRatio())
+                .fillerWordCount(analysis.getFillerWordCount())
+                .fillerWords(analysis.getFillerWords())
+                .speakingDurationSeconds(analysis.getSpeakingDurationSeconds())
+                .errorMessage(analysis.getErrorMessage())
+                .createdAt(analysis.getCreatedAt())
+                .updatedAt(analysis.getUpdatedAt())
+                .build();
+    }
+}
