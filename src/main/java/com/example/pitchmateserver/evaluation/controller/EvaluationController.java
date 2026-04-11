@@ -20,15 +20,15 @@ public class EvaluationController {
 
     private final EvaluationService evaluationService;
 
-    // 멘토 직접 루브릭 평가 작성
-    @PostMapping("/api/videos/{videoId}/evaluations")
-    public ResponseEntity<ApiResponse<EvaluationResponse>> createManualEvaluation(
-            @CurrentUser Long userId,
-            @PathVariable Long videoId,
-            @Valid @RequestBody EvaluationRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.of(SuccessCode.SUCCESS, HttpStatus.CREATED, evaluationService.createManualEvaluation(userId, videoId, request)));
-    }
+    // TODO: 멘토-멘티 기능 구현 시 활성화
+//    @PostMapping("/api/videos/{videoId}/evaluations")
+//    public ResponseEntity<ApiResponse<EvaluationResponse>> createManualEvaluation(
+//            @CurrentUser Long userId,
+//            @PathVariable Long videoId,
+//            @Valid @RequestBody EvaluationRequest request) {
+//        return ResponseEntity.status(HttpStatus.CREATED)
+//                .body(ApiResponse.of(SuccessCode.SUCCESS, HttpStatus.CREATED, evaluationService.createManualEvaluation(userId, videoId, request)));
+//    }
 
     // AI 루브릭 기반 평가 생성 요청
     @PostMapping("/api/videos/{videoId}/evaluations/ai")
@@ -46,10 +46,4 @@ public class EvaluationController {
         return ResponseEntity.ok(ApiResponse.ok(evaluationService.getEvaluationsByVideo(videoId)));
     }
 
-    // 평가 단건 조회
-    @GetMapping("/api/evaluations/{evaluationId}")
-    public ResponseEntity<ApiResponse<EvaluationResponse>> getEvaluation(
-            @PathVariable Long evaluationId) {
-        return ResponseEntity.ok(ApiResponse.ok(evaluationService.getEvaluation(evaluationId)));
-    }
 }

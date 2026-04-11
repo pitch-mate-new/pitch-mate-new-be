@@ -41,9 +41,6 @@ public class SecurityConfig {
                                 "/api/auth/signup",
                                 "/api/auth/login",
                                 "/api/auth/reissue",
-                                "/api/auth/check-email",
-                                "/api/auth/check-nickname",
-                                "/h2-console/**",
                                 "/api/rubrics",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
@@ -51,7 +48,6 @@ public class SecurityConfig {
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
-                .headers(headers -> headers.frameOptions(frame -> frame.disable()))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }

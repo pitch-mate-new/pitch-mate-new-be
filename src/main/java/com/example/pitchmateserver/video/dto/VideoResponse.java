@@ -18,6 +18,8 @@ public class VideoResponse {
     private String videoUrl;
     private String thumbnailUrl;
     private String type;
+    // TODO: 연습 유형 - 추후 활성화
+    // private String practiceType;
     private Integer durationSeconds;
     private LocalDateTime createdAt;
 
@@ -31,6 +33,8 @@ public class VideoResponse {
                 .videoUrl(video.getVideoUrl())
                 .thumbnailUrl(video.getThumbnailUrl())
                 .type(video.getType().name())
+                // TODO: 연습 유형 - 추후 활성화
+                // .practiceType(video.getPracticeType().name())
                 .durationSeconds(video.getDurationSeconds())
                 .createdAt(video.getCreatedAt())
                 .build();

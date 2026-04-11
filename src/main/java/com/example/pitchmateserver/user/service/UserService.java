@@ -5,6 +5,7 @@ import com.example.pitchmateserver.common.exception.ErrorCode;
 import com.example.pitchmateserver.user.dto.UserResponse;
 import com.example.pitchmateserver.user.entity.User;
 import com.example.pitchmateserver.user.repository.UserRepository;
+import com.example.pitchmateserver.video.repository.VideoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,13 +16,21 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final VideoRepository videoRepository;
 
     public UserResponse getMyInfo(Long userId) {
-        return UserResponse.from(findUser(userId));
+        User user = findUser(userId);
+        return UserResponse.from(
+                user,
+                videoRepository.countByUserId(userId),
+                videoRepository.countEvaluatedVideosByUserId(userId),
+                videoRepository.findAverageScoreByUserId(userId)
+        );
     }
 
     public UserResponse getUserById(Long userId) {
-        return UserResponse.from(findUser(userId));
+        User user = findUser(userId);
+        return UserResponse.from(user, 0, 0, null);
     }
 
     @Transactional
@@ -36,19 +45,6 @@ public class UserService {
         if (profileImageUrl != null) {
             user.updateProfileImageUrl(profileImageUrl);
         }
-    }
-
-    @Transactional
-    public void updateNickname(Long userId, String nickname) {
-        if (userRepository.existsByNickname(nickname)) {
-            throw new BusinessException(ErrorCode.DUPLICATE_NICKNAME);
-        }
-        findUser(userId).updateNickname(nickname);
-    }
-
-    @Transactional
-    public void updateProfileImageUrl(Long userId, String profileImageUrl) {
-        findUser(userId).updateProfileImageUrl(profileImageUrl);
     }
 
     @Transactional

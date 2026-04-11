@@ -4,6 +4,8 @@ import com.example.pitchmateserver.user.entity.User;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.time.LocalDateTime;
+
 @Getter
 @Builder
 public class UserResponse {
@@ -13,14 +15,22 @@ public class UserResponse {
     private String nickname;
     private String role;
     private String profileImage;
+    private LocalDateTime createdAt;
+    private long totalVideos;
+    private long evaluatedVideos;
+    private Double averageScore;
 
-    public static UserResponse from(User user) {
+    public static UserResponse from(User user, long totalVideos, long evaluatedVideos, Double averageScore) {
         return UserResponse.builder()
                 .userId(user.getId())
                 .email(user.getEmail())
                 .nickname(user.getNickname())
                 .role(user.getRole())
                 .profileImage(user.getProfileImageUrl())
+                .createdAt(user.getCreatedAt())
+                .totalVideos(totalVideos)
+                .evaluatedVideos(evaluatedVideos)
+                .averageScore(averageScore)
                 .build();
     }
 }

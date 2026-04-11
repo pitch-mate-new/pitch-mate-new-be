@@ -17,5 +17,4 @@ public interface SessionRepository extends JpaRepository<Session, Long> {
 
     Optional<Session> findByVideoId(Long videoId);
 
-    List<Session> findTop5ByUserIdOrderByCreatedAtDesc(Long userId);
 }

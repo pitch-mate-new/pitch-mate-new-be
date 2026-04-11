@@ -5,6 +5,7 @@ import com.example.pitchmateserver.common.response.SuccessCode;
 import com.example.pitchmateserver.common.security.CurrentUser;
 import com.example.pitchmateserver.video.dto.VideoResponse;
 import com.example.pitchmateserver.video.dto.VideoUpdateRequest;
+import com.example.pitchmateserver.video.entity.Video;
 import com.example.pitchmateserver.video.service.VideoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -26,19 +27,14 @@ public class VideoController {
             @CurrentUser Long userId,
             @RequestParam("file") MultipartFile file,
             @RequestParam(required = false) String title,
-            @RequestParam(required = false) String description) {
+            @RequestParam(required = false) String description,
+            @RequestParam Video.VideoType videoType
+            // TODO: 연습 유형 - 추후 활성화
+            // , @RequestParam Video.PracticeType practiceType
+    ) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.of(SuccessCode.SUCCESS, HttpStatus.CREATED, videoService.uploadVideo(userId, file, title, description)));
-    }
-
-    @PostMapping("/record")
-    public ResponseEntity<ApiResponse<VideoResponse>> registerRecordedVideo(
-            @CurrentUser Long userId,
-            @RequestParam("file") MultipartFile file,
-            @RequestParam(required = false) String title,
-            @RequestParam(required = false) String description) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.of(SuccessCode.SUCCESS, HttpStatus.CREATED, videoService.registerRecordedVideo(userId, file, title, description)));
+                .body(ApiResponse.of(SuccessCode.SUCCESS, HttpStatus.CREATED,
+                        videoService.uploadVideo(userId, file, title, description, videoType)));
     }
 
     @GetMapping("/my")

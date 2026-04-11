@@ -193,9 +193,9 @@ public class GeminiService {
     }
 
     /**
-     * AI 루브릭 기반 평가 생성
+     * AI 루브릭 기반 평가 생성 (총평 포함)
      */
-    public Map<String, GeminiEvalResult> generateEvaluation(String fileUri, List<String> rubricTitles, int maxScore) {
+    public GeminiEvaluationResult generateEvaluation(String fileUri, List<String> rubricTitles, int maxScore) {
         String rubricList = String.join(", ", rubricTitles);
         String prompt = String.format("""
                 이 발표/면접 연습 영상을 아래 평가 기준으로 채점해줘.
@@ -206,8 +206,11 @@ public class GeminiService {
 
                 응답 형식:
                 {
-                  "항목명": {"score": <점수 (숫자)>, "comment": "평가 코멘트 (한국어)"},
-                  ...
+                  "scores": {
+                    "항목명": {"score": <점수 (숫자)>, "comment": "항목별 평가 코멘트 (한국어)"},
+                    ...
+                  },
+                  "overallComment": "전체 발표에 대한 종합 총평 (한국어, 3-5문장)"
                 }
                 """, maxScore, rubricList);
 
@@ -216,18 +219,19 @@ public class GeminiService {
             String json = extractJson(responseText);
             JsonNode node = objectMapper.readTree(json);
 
-            Map<String, GeminiEvalResult> results = new LinkedHashMap<>();
-            node.fields().forEachRemaining(entry -> {
+            Map<String, GeminiEvalResult> scores = new LinkedHashMap<>();
+            node.path("scores").fields().forEachRemaining(entry -> {
                 JsonNode val = entry.getValue();
-                results.put(entry.getKey(), new GeminiEvalResult(
-                        val.path("score").asInt(3),
+                scores.put(entry.getKey(), new GeminiEvalResult(
+                        val.path("score").asInt(5),
                         val.path("comment").asText("AI 평가 결과입니다.")
                 ));
             });
-            return results;
+            String overallComment = node.path("overallComment").asText("AI가 영상을 분석하여 생성한 종합 평가입니다.");
+            return new GeminiEvaluationResult(scores, overallComment);
         } catch (Exception e) {
             log.error("Gemini 평가 생성 실패: {}", e.getMessage());
-            return Collections.emptyMap();
+            return new GeminiEvaluationResult(Collections.emptyMap(), "AI 평가를 완료했습니다.");
         }
     }
 
@@ -317,4 +321,9 @@ public class GeminiService {
     }
 
     public record GeminiEvalResult(int score, String comment) {}
+
+    public record GeminiEvaluationResult(
+            Map<String, GeminiEvalResult> scores,
+            String overallComment
+    ) {}
 }

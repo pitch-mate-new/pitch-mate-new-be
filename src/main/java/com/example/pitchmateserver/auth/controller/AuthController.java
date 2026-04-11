@@ -16,8 +16,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
-
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -49,17 +47,5 @@ public class AuthController {
     @PostMapping("/reissue")
     public ResponseEntity<ApiResponse<TokenResponse>> reissue(@Valid @RequestBody ReissueRequest request) {
         return ResponseEntity.ok(ApiResponse.ok(authService.reissue(request.getRefreshToken())));
-    }
-
-    @GetMapping("/check-email")
-    public ResponseEntity<ApiResponse<Map<String, Boolean>>> checkEmail(@RequestParam String email) {
-        boolean isDuplicated = !authService.checkEmailAvailable(email);
-        return ResponseEntity.ok(ApiResponse.ok(Map.of("isDuplicated", isDuplicated)));
-    }
-
-    @GetMapping("/check-nickname")
-    public ResponseEntity<ApiResponse<Map<String, Boolean>>> checkNickname(@RequestParam String nickname) {
-        boolean isDuplicated = !authService.checkNicknameAvailable(nickname);
-        return ResponseEntity.ok(ApiResponse.ok(Map.of("isDuplicated", isDuplicated)));
     }
 }

@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -54,21 +55,15 @@ public class SessionService {
         );
     }
 
-    // 히스토리 목록 조회
-    public List<SessionSummaryResponse> getMyHistory(Long userId) {
-        return sessionRepository.findByUserIdOrderByCreatedAtDesc(userId)
+    // 히스토리 목록 조회 (type 필터, limit 제한 가능)
+    public List<SessionSummaryResponse> getMyHistory(Long userId, String videoType, Integer limit) {
+        Stream<Session> stream = sessionRepository.findByUserIdOrderByCreatedAtDesc(userId)
                 .stream()
-                .map(SessionSummaryResponse::from)
-                .toList();
-    }
-
-    // 히스토리 필터 조회 (videoType 기준)
-    public List<SessionSummaryResponse> getFilteredHistory(Long userId, String videoType) {
-        return sessionRepository.findByUserIdOrderByCreatedAtDesc(userId)
-                .stream()
-                .filter(s -> videoType == null || s.getVideo().getType().name().equalsIgnoreCase(videoType))
-                .map(SessionSummaryResponse::from)
-                .toList();
+                .filter(s -> videoType == null || s.getVideo().getType().name().equalsIgnoreCase(videoType));
+        if (limit != null && limit > 0) {
+            stream = stream.limit(limit);
+        }
+        return toSummaryWithScores(stream.toList());
     }
 
     // 히스토리 상세 조회 (영상 + 피드백 + 평가 + 분석)
@@ -88,14 +83,6 @@ public class SessionService {
                 .orElse(null);
 
         return SessionDetailResponse.of(session, video, feedbacks, evaluations, analysis);
-    }
-
-    // 최근 5회차 요약
-    public List<SessionSummaryResponse> getRecentSummary(Long userId) {
-        return sessionRepository.findTop5ByUserIdOrderByCreatedAtDesc(userId)
-                .stream()
-                .map(SessionSummaryResponse::from)
-                .toList();
     }
 
     // 두 세션 비교
@@ -122,9 +109,12 @@ public class SessionService {
                 .session2FillerWordCount(an2 != null ? an2.getFillerWordCount() : null)
                 .build();
 
+        var status1 = an1 != null ? an1.getStatus() : null;
+        var status2 = an2 != null ? an2.getStatus() : null;
+
         return SessionCompareResponse.builder()
-                .session1(SessionSummaryResponse.from(s1))
-                .session2(SessionSummaryResponse.from(s2))
+                .session1(SessionSummaryResponse.from(s1, null, null, status1))
+                .session2(SessionSummaryResponse.from(s2, null, null, status2))
                 .evaluationScores(scoreCompare)
                 .analysisData(analysisCompare)
                 .build();
@@ -167,6 +157,39 @@ public class SessionService {
                 .session2MaxScore(e2.getMaxTotalScore())
                 .rubricComparisons(rubricComparisons)
                 .build();
+    }
+
+    // 세션 목록을 점수 + 분석상태와 함께 SummaryResponse로 변환 (N+1 방지)
+    private List<SessionSummaryResponse> toSummaryWithScores(List<Session> sessions) {
+        List<Long> videoIds = sessions.stream().map(s -> s.getVideo().getId()).toList();
+
+        Map<Long, com.example.pitchmateserver.evaluation.entity.Evaluation> latestEvalMap =
+                evaluationRepository.findByVideoIdIn(videoIds).stream()
+                        .collect(Collectors.toMap(
+                                e -> e.getVideo().getId(),
+                                e -> e,
+                                (existing, replacement) -> existing
+                        ));
+
+        Map<Long, com.example.pitchmateserver.ai.entity.Analysis.AnalysisStatus> analysisStatusMap =
+                analysisRepository.findByVideoIdIn(videoIds).stream()
+                        .collect(Collectors.toMap(
+                                a -> a.getVideo().getId(),
+                                com.example.pitchmateserver.ai.entity.Analysis::getStatus
+                        ));
+
+        return sessions.stream()
+                .map(s -> {
+                    var eval = latestEvalMap.get(s.getVideo().getId());
+                    var status = analysisStatusMap.get(s.getVideo().getId());
+                    return SessionSummaryResponse.from(
+                            s,
+                            eval != null ? eval.getTotalScore() : null,
+                            eval != null ? eval.getMaxTotalScore() : null,
+                            status
+                    );
+                })
+                .toList();
     }
 
     private Session findSession(Long sessionId) {

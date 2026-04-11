@@ -99,14 +99,6 @@ public class AuthService {
         return TokenResponse.of(newAccessToken, newRefreshToken, user.getId(), user.getNickname(), user.getRole());
     }
 
-    public boolean checkEmailAvailable(String email) {
-        return !userRepository.existsByEmail(email);
-    }
-
-    public boolean checkNicknameAvailable(String nickname) {
-        return !userRepository.existsByNickname(nickname);
-    }
-
     private void saveRefreshToken(Long userId, String token) {
         LocalDateTime expiresAt = LocalDateTime.now().plusSeconds(refreshTokenExpiration / 1000);
         refreshTokenRepository.findByUserId(userId)

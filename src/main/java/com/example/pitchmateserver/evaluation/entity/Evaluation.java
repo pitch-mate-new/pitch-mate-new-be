@@ -57,6 +57,10 @@ public class Evaluation {
         this.maxTotalScore = maxTotalScore;
     }
 
+    public void updateComment(String comment) {
+        this.comment = comment;
+    }
+
     public enum EvaluationType {
         MANUAL,  // 멘토가 직접 평가
         AI       // AI 자동 평가

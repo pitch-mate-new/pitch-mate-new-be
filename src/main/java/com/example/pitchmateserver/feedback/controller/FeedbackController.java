@@ -20,15 +20,15 @@ public class FeedbackController {
 
     private final FeedbackService feedbackService;
 
-    // 멘토 직접 피드백 작성
-    @PostMapping("/api/videos/{videoId}/feedbacks")
-    public ResponseEntity<ApiResponse<FeedbackResponse>> createManualFeedback(
-            @CurrentUser Long userId,
-            @PathVariable Long videoId,
-            @Valid @RequestBody FeedbackRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.of(SuccessCode.SUCCESS, HttpStatus.CREATED, feedbackService.createManualFeedback(userId, videoId, request)));
-    }
+    // TODO: 멘토-멘티 기능 구현 시 활성화
+//    @PostMapping("/api/videos/{videoId}/feedbacks")
+//    public ResponseEntity<ApiResponse<FeedbackResponse>> createManualFeedback(
+//            @CurrentUser Long userId,
+//            @PathVariable Long videoId,
+//            @Valid @RequestBody FeedbackRequest request) {
+//        return ResponseEntity.status(HttpStatus.CREATED)
+//                .body(ApiResponse.of(SuccessCode.SUCCESS, HttpStatus.CREATED, feedbackService.createManualFeedback(userId, videoId, request)));
+//    }
 
     // AI 구간 피드백 생성 요청
     @PostMapping("/api/videos/{videoId}/feedbacks/ai")
@@ -46,9 +46,4 @@ public class FeedbackController {
         return ResponseEntity.ok(ApiResponse.ok(feedbackService.getFeedbacksByVideo(videoId)));
     }
 
-    // 피드백 단건 조회
-    @GetMapping("/api/feedbacks/{feedbackId}")
-    public ResponseEntity<ApiResponse<FeedbackResponse>> getFeedback(@PathVariable Long feedbackId) {
-        return ResponseEntity.ok(ApiResponse.ok(feedbackService.getFeedback(feedbackId)));
-    }
 }

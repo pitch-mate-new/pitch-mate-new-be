@@ -1,7 +1,9 @@
 package com.example.pitchmateserver.video.service;
 
+import com.example.pitchmateserver.ai.service.AnalysisService;
 import com.example.pitchmateserver.common.exception.BusinessException;
 import com.example.pitchmateserver.common.exception.ErrorCode;
+import com.example.pitchmateserver.evaluation.service.EvaluationService;
 import com.example.pitchmateserver.session.service.SessionService;
 import com.example.pitchmateserver.user.entity.User;
 import com.example.pitchmateserver.user.service.UserService;
@@ -30,49 +32,53 @@ public class VideoService {
     private final VideoRepository videoRepository;
     private final UserService userService;
     private final SessionService sessionService;
+    private final AnalysisService analysisService;
+    private final EvaluationService evaluationService;
 
     @Value("${file.upload-dir}")
     private String uploadDir;
 
     public VideoService(VideoRepository videoRepository,
                         UserService userService,
-                        @Lazy SessionService sessionService) {
+                        @Lazy SessionService sessionService,
+                        @Lazy AnalysisService analysisService,
+                        @Lazy EvaluationService evaluationService) {
         this.videoRepository = videoRepository;
         this.userService = userService;
         this.sessionService = sessionService;
+        this.analysisService = analysisService;
+        this.evaluationService = evaluationService;
     }
 
     @Transactional
-    public VideoResponse uploadVideo(Long userId, MultipartFile file, String title, String description) {
+    public VideoResponse uploadVideo(Long userId, MultipartFile file, String title, String description,
+                                     Video.VideoType videoType
+                                     // TODO: 연습 유형 - 추후 활성화
+                                     // , Video.PracticeType practiceType
+    ) {
         User user = userService.findUser(userId);
         String videoUrl = saveFile(file, "videos");
 
-        Video video = videoRepository.save(Video.builder()
-                .user(user)
-                .title(title != null ? title : file.getOriginalFilename())
-                .description(description)
-                .videoUrl(videoUrl)
-                .type(Video.VideoType.UPLOAD)
-                .build());
-
-        sessionService.createSession(user, video);
-        return VideoResponse.from(video);
-    }
-
-    @Transactional
-    public VideoResponse registerRecordedVideo(Long userId, MultipartFile file, String title, String description) {
-        User user = userService.findUser(userId);
-        String videoUrl = saveFile(file, "videos");
+        String defaultTitle = videoType == Video.VideoType.RECORD
+                ? "녹화 영상 " + System.currentTimeMillis()
+                : file.getOriginalFilename();
 
         Video video = videoRepository.save(Video.builder()
                 .user(user)
-                .title(title != null ? title : "녹화 영상 " + System.currentTimeMillis())
+                .title(title != null ? title : defaultTitle)
                 .description(description)
                 .videoUrl(videoUrl)
-                .type(Video.VideoType.RECORD)
+                .type(videoType)
+                // TODO: 연습 유형 - 추후 활성화
+                // .practiceType(practiceType)
                 .build());
 
         sessionService.createSession(user, video);
+
+        // 영상 업로드 즉시 AI 분석 + 평가 자동 시작 (비동기)
+        analysisService.requestAnalysis(video.getId());
+        evaluationService.generateAiEvaluationAsync(video.getId());
+
         return VideoResponse.from(video);
     }
 

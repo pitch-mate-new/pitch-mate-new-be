@@ -19,26 +19,13 @@ public class HistoryController {
 
     private final SessionService sessionService;
 
-    // 히스토리 목록 조회
+    // 히스토리 목록 조회 (?type=UPLOAD/RECORD, ?limit=N)
     @GetMapping
     public ResponseEntity<ApiResponse<List<SessionSummaryResponse>>> getMyHistory(
-            @CurrentUser Long userId) {
-        return ResponseEntity.ok(ApiResponse.ok(sessionService.getMyHistory(userId)));
-    }
-
-    // 히스토리 필터 조회 (type: UPLOAD / RECORD)
-    @GetMapping("/my/filter")
-    public ResponseEntity<ApiResponse<List<SessionSummaryResponse>>> getFilteredHistory(
             @CurrentUser Long userId,
-            @RequestParam(required = false) String type) {
-        return ResponseEntity.ok(ApiResponse.ok(sessionService.getFilteredHistory(userId, type)));
-    }
-
-    // 최근 히스토리 요약
-    @GetMapping("/my/recent-summary")
-    public ResponseEntity<ApiResponse<List<SessionSummaryResponse>>> getRecentSummary(
-            @CurrentUser Long userId) {
-        return ResponseEntity.ok(ApiResponse.ok(sessionService.getRecentSummary(userId)));
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) Integer limit) {
+        return ResponseEntity.ok(ApiResponse.ok(sessionService.getMyHistory(userId, type, limit)));
     }
 
     // 두 히스토리 비교

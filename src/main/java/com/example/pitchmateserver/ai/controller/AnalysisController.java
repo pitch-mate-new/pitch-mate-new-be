@@ -53,44 +53,6 @@ public class AnalysisController {
         return ResponseEntity.ok(ApiResponse.ok(analysisService.getAnalysisByVideo(videoId)));
     }
 
-    // 말 속도 분석 결과 조회
-    @GetMapping("/api/analysis/{analysisId}/speech-rate")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> getSpeechRate(
-            @PathVariable Long analysisId) {
-        AnalysisResponse analysis = analysisService.getAnalysis(analysisId);
-        return ResponseEntity.ok(ApiResponse.ok(Map.of(
-                "analysisId", analysis.getId(),
-                "wpm", analysis.getSpeechRateWpm() != null ? analysis.getSpeechRateWpm() : 0.0,
-                "speakingDurationSeconds", analysis.getSpeakingDurationSeconds() != null ? analysis.getSpeakingDurationSeconds() : 0.0,
-                "status", analysis.getStatus()
-        )));
-    }
-
-    // 침묵 구간 분석 결과 조회
-    @GetMapping("/api/analysis/{analysisId}/silence")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> getSilence(
-            @PathVariable Long analysisId) {
-        AnalysisResponse analysis = analysisService.getAnalysis(analysisId);
-        return ResponseEntity.ok(ApiResponse.ok(Map.of(
-                "analysisId", analysis.getId(),
-                "silenceRatio", analysis.getSilenceRatio() != null ? analysis.getSilenceRatio() : 0.0,
-                "status", analysis.getStatus()
-        )));
-    }
-
-    // 필러워드 분석 결과 조회
-    @GetMapping("/api/analysis/{analysisId}/filler-words")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> getFillerWords(
-            @PathVariable Long analysisId) {
-        AnalysisResponse analysis = analysisService.getAnalysis(analysisId);
-        return ResponseEntity.ok(ApiResponse.ok(Map.of(
-                "analysisId", analysis.getId(),
-                "fillerWordCount", analysis.getFillerWordCount() != null ? analysis.getFillerWordCount() : 0,
-                "fillerWords", analysis.getFillerWords() != null ? analysis.getFillerWords() : "",
-                "status", analysis.getStatus()
-        )));
-    }
-
     // 분석 결과 삭제
     @DeleteMapping("/api/analysis/{analysisId}")
     public ResponseEntity<ApiResponse<Void>> deleteAnalysis(

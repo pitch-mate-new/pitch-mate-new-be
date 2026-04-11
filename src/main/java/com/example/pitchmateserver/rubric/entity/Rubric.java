@@ -21,6 +21,9 @@ public class Rubric {
     @Column(length = 500)
     private String description;
 
+    @Column(nullable = false)
+    private String category;
+
     @Column(name = "max_score", nullable = false)
     private Integer maxScore;
 
