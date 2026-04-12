@@ -21,7 +21,17 @@ public class FeedbackController {
 
     private final FeedbackService feedbackService;
 
-    @Operation(summary = "AI 피드백 생성", description = "Gemini AI가 영상을 분석하여 구간별 피드백을 생성합니다. 영상 업로드 시 자동으로 실행되므로 별도 호출이 필요 없을 수 있습니다.")
+    @Operation(
+            summary = "AI 피드백 생성",
+            description = """
+                    Gemini AI가 영상을 분석하여 구간별 피드백을 생성합니다.
+                    영상 업로드 시 자동으로 실행되므로 별도 호출이 필요 없을 수 있습니다.
+
+                    **에러 응답**
+                    - 401: 인증 토큰 없음 또는 만료
+                    - 404 (code 4020): 영상을 찾을 수 없음
+                    """
+    )
     @PostMapping("/api/videos/{videoId}/feedbacks/ai")
     public ResponseEntity<ApiResponse<List<FeedbackResponse>>> generateAiFeedbacks(
             @CurrentUser Long userId,
@@ -30,7 +40,16 @@ public class FeedbackController {
                 .body(ApiResponse.of(SuccessCode.SUCCESS, HttpStatus.CREATED, feedbackService.generateAiFeedbacks(videoId)));
     }
 
-    @Operation(summary = "피드백 목록 조회", description = "특정 영상의 전체 피드백 목록을 시작 시간 순으로 반환합니다.")
+    @Operation(
+            summary = "피드백 목록 조회",
+            description = """
+                    특정 영상의 전체 피드백 목록을 시작 시간 순으로 반환합니다.
+
+                    **에러 응답**
+                    - 401: 인증 토큰 없음 또는 만료
+                    - 404 (code 4020): 영상을 찾을 수 없음
+                    """
+    )
     @GetMapping("/api/videos/{videoId}/feedbacks")
     public ResponseEntity<ApiResponse<List<FeedbackResponse>>> getFeedbacksByVideo(
             @PathVariable Long videoId) {

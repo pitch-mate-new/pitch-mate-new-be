@@ -37,7 +37,10 @@ public class HistoryController {
 
                     **쿼리 파라미터**
                     - `type`: UPLOAD 또는 RECORD 필터링 (미입력 시 전체)
-                    - `limit`: 반환할 최대 개수 (예: 대시보드에서 최근 4개만 필요할 때 limit=4)
+                    - `limit`: 반환할 최대 개수 (대시보드 최근 4개: limit=4)
+
+                    **에러 응답**
+                    - 401: 인증 토큰 없음 또는 만료
                     """
     )
     @GetMapping
@@ -48,7 +51,17 @@ public class HistoryController {
         return ResponseEntity.ok(ApiResponse.ok(sessionService.getMyHistory(userId, type, limit)));
     }
 
-    @Operation(summary = "두 회차 비교", description = "두 세션의 루브릭 점수와 AI 분석 데이터를 비교합니다. sessionId1, sessionId2는 히스토리 목록의 id 값입니다.")
+    @Operation(
+            summary = "두 회차 비교",
+            description = """
+                    두 세션의 루브릭 점수와 AI 분석 데이터를 비교합니다.
+                    sessionId1, sessionId2는 히스토리 목록의 id 값입니다.
+
+                    **에러 응답**
+                    - 401: 인증 토큰 없음 또는 만료
+                    - 404 (code 4050): 세션을 찾을 수 없음
+                    """
+    )
     @GetMapping("/compare")
     public ResponseEntity<ApiResponse<SessionCompareResponse>> compareSessions(
             @Parameter(description = "비교할 첫 번째 세션 ID") @RequestParam Long sessionId1,
@@ -56,7 +69,20 @@ public class HistoryController {
         return ResponseEntity.ok(ApiResponse.ok(sessionService.compareSessions(sessionId1, sessionId2)));
     }
 
-    @Operation(summary = "히스토리 상세 조회", description = "특정 연습 기록의 상세 정보를 반환합니다. 영상 정보, AI 피드백 목록, 루브릭 평가(10개 항목별 점수 및 총평), AI 분석 결과(말속도/침묵비율/필러워드)가 포함됩니다.")
+    @Operation(
+            summary = "히스토리 상세 조회",
+            description = """
+                    특정 연습 기록의 상세 정보를 반환합니다.
+                    - video: 영상 정보
+                    - feedbacks: AI 구간별 피드백 목록
+                    - evaluations: 루브릭 평가 (10개 항목별 점수 + AI 총평)
+                    - analysis: AI 분석 결과 (말속도, 침묵비율, 필러워드)
+
+                    **에러 응답**
+                    - 401: 인증 토큰 없음 또는 만료
+                    - 404 (code 4050): 세션을 찾을 수 없음
+                    """
+    )
     @GetMapping("/{historyId}")
     public ResponseEntity<ApiResponse<SessionDetailResponse>> getSessionDetail(
             @PathVariable Long historyId) {

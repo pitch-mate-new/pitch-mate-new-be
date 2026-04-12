@@ -21,16 +21,24 @@ public class EvaluationController {
 
     private final EvaluationService evaluationService;
 
-    @Operation(summary = "AI 평가 생성", description = """
-            Gemini AI가 10개 루브릭 기준으로 영상을 평가합니다. 영상 업로드 시 자동으로 실행됩니다.
+    @Operation(
+            summary = "AI 평가 생성",
+            description = """
+                    Gemini AI가 10개 루브릭 기준으로 영상을 평가합니다.
+                    영상 업로드 시 자동으로 실행됩니다.
 
-            **루브릭 항목 (각 10점 만점, 총 100점)**
-            - 스피치: 발음 정확성, 말하기 속도, 음성 변화, 시선 처리
-            - 비언어: 제스처, 자세 및 표정
-            - 전달력·표현력: 논리적 구성, 핵심전달력, 필러워드 빈도, 시간활용
+                    **루브릭 항목 (각 10점 만점, 총 100점)**
+                    - 스피치: 발음 정확성, 말하기 속도, 음성 변화, 시선 처리
+                    - 비언어: 제스처, 자세 및 표정
+                    - 전달력·표현력: 논리적 구성, 핵심전달력, 필러워드 빈도, 시간활용
 
-            응답의 `comment` 필드에 AI 총평이 포함됩니다.
-            """)
+                    응답의 `comment` 필드에 AI 총평이 포함됩니다.
+
+                    **에러 응답**
+                    - 401: 인증 토큰 없음 또는 만료
+                    - 404 (code 4020): 영상을 찾을 수 없음
+                    """
+    )
     @PostMapping("/api/videos/{videoId}/evaluations/ai")
     public ResponseEntity<ApiResponse<EvaluationResponse>> generateAiEvaluation(
             @CurrentUser Long userId,
@@ -39,7 +47,17 @@ public class EvaluationController {
                 .body(ApiResponse.of(SuccessCode.SUCCESS, HttpStatus.CREATED, evaluationService.generateAiEvaluation(videoId)));
     }
 
-    @Operation(summary = "평가 목록 조회", description = "특정 영상의 평가 목록을 반환합니다. 각 평가에는 루브릭별 점수와 AI 총평이 포함됩니다.")
+    @Operation(
+            summary = "평가 목록 조회",
+            description = """
+                    특정 영상의 평가 목록을 반환합니다.
+                    각 평가에는 루브릭별 점수와 AI 총평(comment)이 포함됩니다.
+
+                    **에러 응답**
+                    - 401: 인증 토큰 없음 또는 만료
+                    - 404 (code 4020): 영상을 찾을 수 없음
+                    """
+    )
     @GetMapping("/api/videos/{videoId}/evaluations")
     public ResponseEntity<ApiResponse<List<EvaluationResponse>>> getEvaluationsByVideo(
             @PathVariable Long videoId) {

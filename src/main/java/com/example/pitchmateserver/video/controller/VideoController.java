@@ -34,6 +34,11 @@ public class VideoController {
                     **videoType 값**
                     - `UPLOAD`: 기존에 촬영된 영상을 파일로 업로드
                     - `RECORD`: 앱에서 직접 녹화한 영상
+
+                    **에러 응답**
+                    - 400: 파일 없음 / videoType 미입력
+                    - 401: 인증 토큰 없음 또는 만료
+                    - 500 (code 4060): 파일 저장 실패
                     """
     )
     @PostMapping(consumes = "multipart/form-data")
@@ -49,19 +54,46 @@ public class VideoController {
                         videoService.uploadVideo(userId, file, title, description, videoType)));
     }
 
-    @Operation(summary = "내 영상 목록 조회", description = "로그인한 사용자의 전체 영상 목록을 최신순으로 반환합니다.")
+    @Operation(
+            summary = "내 영상 목록 조회",
+            description = """
+                    로그인한 사용자의 전체 영상 목록을 최신순으로 반환합니다.
+
+                    **에러 응답**
+                    - 401: 인증 토큰 없음 또는 만료
+                    """
+    )
     @GetMapping("/my")
     public ResponseEntity<ApiResponse<List<VideoResponse>>> getMyVideos(@CurrentUser Long userId) {
         return ResponseEntity.ok(ApiResponse.ok(videoService.getMyVideos(userId)));
     }
 
-    @Operation(summary = "영상 상세 조회", description = "영상 ID로 특정 영상의 상세 정보를 조회합니다.")
+    @Operation(
+            summary = "영상 상세 조회",
+            description = """
+                    영상 ID로 특정 영상의 상세 정보를 조회합니다.
+
+                    **에러 응답**
+                    - 401: 인증 토큰 없음 또는 만료
+                    - 404 (code 4020): 영상을 찾을 수 없음
+                    """
+    )
     @GetMapping("/{videoId}")
     public ResponseEntity<ApiResponse<VideoResponse>> getVideo(@PathVariable Long videoId) {
         return ResponseEntity.ok(ApiResponse.ok(videoService.getVideo(videoId)));
     }
 
-    @Operation(summary = "영상 정보 수정", description = "영상의 제목 또는 설명을 수정합니다.")
+    @Operation(
+            summary = "영상 정보 수정",
+            description = """
+                    영상의 제목 또는 설명을 수정합니다. 본인 영상만 수정 가능합니다.
+
+                    **에러 응답**
+                    - 401: 인증 토큰 없음 또는 만료
+                    - 403 (code 4021): 본인 영상이 아님
+                    - 404 (code 4020): 영상을 찾을 수 없음
+                    """
+    )
     @PutMapping("/{videoId}")
     public ResponseEntity<ApiResponse<VideoResponse>> updateVideo(
             @CurrentUser Long userId,
@@ -70,7 +102,17 @@ public class VideoController {
         return ResponseEntity.ok(ApiResponse.ok(videoService.updateVideo(userId, videoId, request)));
     }
 
-    @Operation(summary = "영상 삭제", description = "영상을 삭제합니다. 본인 영상만 삭제할 수 있습니다.")
+    @Operation(
+            summary = "영상 삭제",
+            description = """
+                    영상을 삭제합니다. 본인 영상만 삭제 가능합니다.
+
+                    **에러 응답**
+                    - 401: 인증 토큰 없음 또는 만료
+                    - 403 (code 4021): 본인 영상이 아님
+                    - 404 (code 4020): 영상을 찾을 수 없음
+                    """
+    )
     @DeleteMapping("/{videoId}")
     public ResponseEntity<ApiResponse<Void>> deleteVideo(
             @CurrentUser Long userId,

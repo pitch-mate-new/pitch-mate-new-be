@@ -21,16 +21,22 @@ public class RubricController {
 
     private final RubricService rubricService;
 
-    @Operation(summary = "루브릭 항목 전체 조회", description = """
-            AI 평가에 사용되는 10개 루브릭 항목을 반환합니다. 인증 없이 호출 가능합니다.
+    @Operation(
+            summary = "루브릭 항목 전체 조회",
+            description = """
+                    AI 평가에 사용되는 10개 루브릭 항목을 반환합니다. 인증 없이 호출 가능합니다.
 
-            **카테고리**
-            - 스피치: 발음 정확성, 말하기 속도, 음성 변화, 시선 처리
-            - 비언어: 제스처, 자세 및 표정
-            - 전달력·표현력: 논리적 구성, 핵심전달력, 필러워드 빈도, 시간활용
+                    **카테고리**
+                    - 스피치: 발음 정확성, 말하기 속도, 음성 변화, 시선 처리
+                    - 비언어: 제스처, 자세 및 표정
+                    - 전달력·표현력: 논리적 구성, 핵심전달력, 필러워드 빈도, 시간활용
 
-            각 항목의 만점은 10점이며 총점은 100점입니다.
-            """)
+                    각 항목의 만점은 10점이며 총점은 100점입니다.
+
+                    **에러 응답**
+                    - 없음 (인증 불필요, 항상 10개 반환)
+                    """
+    )
     @GetMapping
     public ResponseEntity<ApiResponse<List<RubricResponse>>> getAllRubrics() {
         return ResponseEntity.ok(ApiResponse.ok(rubricService.getAllRubrics()));
