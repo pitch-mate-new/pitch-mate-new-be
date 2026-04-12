@@ -45,7 +45,7 @@ public class AuthService {
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .nickname(request.getNickname())
-                .role(request.getRole() != null ? request.getRole() : "MENTEE")
+                .role("MENTEE")
                 .build();
         return SignupResponse.from(userRepository.save(user));
     }

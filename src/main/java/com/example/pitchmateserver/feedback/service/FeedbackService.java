@@ -3,12 +3,9 @@ package com.example.pitchmateserver.feedback.service;
 import com.example.pitchmateserver.ai.service.GeminiService;
 import com.example.pitchmateserver.common.exception.BusinessException;
 import com.example.pitchmateserver.common.exception.ErrorCode;
-import com.example.pitchmateserver.feedback.dto.FeedbackRequest;
 import com.example.pitchmateserver.feedback.dto.FeedbackResponse;
 import com.example.pitchmateserver.feedback.entity.Feedback;
 import com.example.pitchmateserver.feedback.repository.FeedbackRepository;
-import com.example.pitchmateserver.user.entity.User;
-import com.example.pitchmateserver.user.service.UserService;
 import com.example.pitchmateserver.video.entity.Video;
 import com.example.pitchmateserver.video.service.VideoService;
 import lombok.RequiredArgsConstructor;
@@ -26,25 +23,7 @@ public class FeedbackService {
 
     private final FeedbackRepository feedbackRepository;
     private final VideoService videoService;
-    private final UserService userService;
     private final GeminiService geminiService;
-
-    @Transactional
-    public FeedbackResponse createManualFeedback(Long userId, Long videoId, FeedbackRequest request) {
-        Video video = videoService.findVideo(videoId);
-        User author = userService.findUser(userId);
-
-        Feedback feedback = Feedback.builder()
-                .video(video)
-                .author(author)
-                .startTimeSeconds(request.getStartTimeSeconds())
-                .endTimeSeconds(request.getEndTimeSeconds())
-                .content(request.getContent())
-                .type(Feedback.FeedbackType.MANUAL)
-                .build();
-
-        return FeedbackResponse.from(feedbackRepository.save(feedback));
-    }
 
     @Transactional
     public List<FeedbackResponse> generateAiFeedbacks(Long videoId) {
@@ -85,12 +64,4 @@ public class FeedbackService {
                 .toList();
     }
 
-    public FeedbackResponse getFeedback(Long feedbackId) {
-        return FeedbackResponse.from(findFeedback(feedbackId));
-    }
-
-    public Feedback findFeedback(Long feedbackId) {
-        return feedbackRepository.findById(feedbackId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.FEEDBACK_NOT_FOUND));
-    }
 }

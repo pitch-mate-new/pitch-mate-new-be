@@ -3,15 +3,12 @@ package com.example.pitchmateserver.evaluation.service;
 import com.example.pitchmateserver.ai.service.GeminiService;
 import com.example.pitchmateserver.common.exception.BusinessException;
 import com.example.pitchmateserver.common.exception.ErrorCode;
-import com.example.pitchmateserver.evaluation.dto.EvaluationRequest;
 import com.example.pitchmateserver.evaluation.dto.EvaluationResponse;
 import com.example.pitchmateserver.evaluation.entity.Evaluation;
 import com.example.pitchmateserver.evaluation.entity.EvaluationScore;
 import com.example.pitchmateserver.evaluation.repository.EvaluationRepository;
 import com.example.pitchmateserver.rubric.entity.Rubric;
 import com.example.pitchmateserver.rubric.repository.RubricRepository;
-import com.example.pitchmateserver.user.entity.User;
-import com.example.pitchmateserver.user.service.UserService;
 import com.example.pitchmateserver.video.entity.Video;
 import com.example.pitchmateserver.video.service.VideoService;
 import lombok.RequiredArgsConstructor;
@@ -35,7 +32,6 @@ public class EvaluationService {
     private final EvaluationRepository evaluationRepository;
     private final RubricRepository rubricRepository;
     private final VideoService videoService;
-    private final UserService userService;
     private final GeminiService geminiService;
 
     @Lazy
@@ -50,41 +46,6 @@ public class EvaluationService {
         } catch (Exception e) {
             log.error("AI 평가 자동 실행 실패: videoId={}, error={}", videoId, e.getMessage());
         }
-    }
-
-    @Transactional
-    public EvaluationResponse createManualEvaluation(Long userId, Long videoId, EvaluationRequest request) {
-        Video video = videoService.findVideo(videoId);
-        User evaluator = userService.findUser(userId);
-
-        Evaluation evaluation = evaluationRepository.save(Evaluation.builder()
-                .video(video)
-                .evaluator(evaluator)
-                .type(Evaluation.EvaluationType.MANUAL)
-                .comment(request.getComment())
-                .totalScore(0)
-                .maxTotalScore(0)
-                .build());
-
-        List<EvaluationScore> scores = request.getScores().stream()
-                .map(req -> {
-                    Rubric rubric = rubricRepository.findById(req.getRubricId())
-                            .orElseThrow(() -> new BusinessException(ErrorCode.RUBRIC_NOT_FOUND));
-                    return EvaluationScore.builder()
-                            .evaluation(evaluation)
-                            .rubric(rubric)
-                            .score(req.getScore())
-                            .comment(req.getComment())
-                            .build();
-                })
-                .toList();
-
-        evaluation.getScores().addAll(scores);
-        int total = scores.stream().mapToInt(EvaluationScore::getScore).sum();
-        int maxTotal = scores.stream().mapToInt(s -> s.getRubric().getMaxScore()).sum();
-        evaluation.updateTotals(total, maxTotal);
-
-        return EvaluationResponse.from(evaluation);
     }
 
     @Transactional

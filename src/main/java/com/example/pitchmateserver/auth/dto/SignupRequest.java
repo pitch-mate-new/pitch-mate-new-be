@@ -20,5 +20,4 @@ public class SignupRequest {
     @Size(min = 2, max = 30, message = "닉네임은 2~30자 사이여야 합니다.")
     private String nickname;
 
-    private String role; // 선택 (MENTOR / MENTEE)
 }
