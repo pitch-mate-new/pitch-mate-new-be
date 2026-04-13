@@ -33,7 +33,7 @@ public class FeedbackService {
         try {
             log.info("Gemini AI 피드백 생성 시작: videoId={}", videoId);
             String fileUri = geminiService.uploadVideoFile(video.getVideoUrl());
-            geminiResults = geminiService.generateFeedbacks(fileUri);
+            geminiResults = geminiService.generateFeedbacks(fileUri, video.getDescription());
             log.info("Gemini AI 피드백 생성 완료: {}개", geminiResults.size());
         } catch (Exception e) {
             log.error("Gemini AI 피드백 생성 실패, 기본값 사용: {}", e.getMessage());

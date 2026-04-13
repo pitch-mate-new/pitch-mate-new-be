@@ -37,13 +37,13 @@ public class AnalysisService {
                         .build()
         );
 
-        runAnalysisAsync(analysis.getId(), video.getVideoUrl());
+        runAnalysisAsync(analysis.getId(), video.getVideoUrl(), video.getDescription());
 
         return AnalysisResponse.from(analysis);
     }
 
     @Async
-    public void runAnalysisAsync(Long analysisId, String videoUrl) {
+    public void runAnalysisAsync(Long analysisId, String videoUrl, String description) {
         Analysis analysis = analysisRepository.findById(analysisId).orElseThrow();
 
         try {
@@ -57,7 +57,7 @@ public class AnalysisService {
             log.info("Gemini 파일 업로드 완료: fileUri={}", fileUri);
 
             // 2. 영상 분석 요청
-            GeminiService.GeminiAnalysisResult result = geminiService.analyzeVideo(fileUri);
+            GeminiService.GeminiAnalysisResult result = geminiService.analyzeVideo(fileUri, description);
             log.info("Gemini 분석 결과: speechRate={}, fillerCount={}", result.speechRateWpm(), result.fillerWordCount());
 
             // 3. 분석 완료 저장

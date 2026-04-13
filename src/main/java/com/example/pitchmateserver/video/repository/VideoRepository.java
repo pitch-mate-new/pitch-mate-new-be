@@ -9,10 +9,8 @@ import java.util.List;
 
 public interface VideoRepository extends JpaRepository<Video, Long> {
     List<Video> findByUserIdOrderByCreatedAtDesc(Long userId);
+    List<Video> findTop4ByUserIdOrderByCreatedAtDesc(Long userId);
     long countByUserId(Long userId);
-
-    @Query("SELECT COUNT(DISTINCT e.video.id) FROM Evaluation e WHERE e.video.user.id = :userId")
-    long countEvaluatedVideosByUserId(@Param("userId") Long userId);
 
     @Query("SELECT AVG(e.totalScore) FROM Evaluation e WHERE e.video.user.id = :userId AND e.totalScore IS NOT NULL")
     Double findAverageScoreByUserId(@Param("userId") Long userId);

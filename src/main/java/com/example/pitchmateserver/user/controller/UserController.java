@@ -25,8 +25,9 @@ public class UserController {
             description = """
                     로그인한 사용자의 프로필 정보와 통계를 반환합니다.
                     - totalVideos: 전체 업로드 영상 수
-                    - evaluatedVideos: AI 평가가 완료된 영상 수
+                    - analyzedVideos: AI 분석이 완료된 영상 수
                     - averageScore: 전체 평가 평균 점수
+                    - recentVideos: 최근 영상 최대 4개 (videoId, title, thumbnailUrl, durationSeconds, analysisStatus, createdAt)
 
                     **에러 응답**
                     - 401: 인증 토큰 없음 또는 만료

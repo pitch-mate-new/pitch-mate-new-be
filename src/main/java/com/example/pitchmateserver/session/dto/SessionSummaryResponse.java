@@ -11,34 +11,26 @@ import java.time.LocalDateTime;
 @Builder
 public class SessionSummaryResponse {
 
-    private Long id;
     private Long videoId;
     private String videoTitle;
     private String videoThumbnailUrl;
-    private String videoType;
-    private String title;
-    private Integer sessionNumber;
+    private Integer durationSeconds;
     private Integer totalScore;
-    private Integer maxTotalScore;
     private String analysisStatus;  // null: 분석 미요청, PENDING/IN_PROGRESS/COMPLETED/FAILED
     private LocalDateTime createdAt;
 
     public static SessionSummaryResponse from(Session session) {
-        return from(session, null, null, null);
+        return from(session, null, null);
     }
 
-    public static SessionSummaryResponse from(Session session, Integer totalScore, Integer maxTotalScore,
+    public static SessionSummaryResponse from(Session session, Integer totalScore,
                                               Analysis.AnalysisStatus analysisStatus) {
         return SessionSummaryResponse.builder()
-                .id(session.getId())
                 .videoId(session.getVideo().getId())
                 .videoTitle(session.getVideo().getTitle())
                 .videoThumbnailUrl(session.getVideo().getThumbnailUrl())
-                .videoType(session.getVideo().getType().name())
-                .title(session.getTitle())
-                .sessionNumber(session.getSessionNumber())
+                .durationSeconds(session.getVideo().getDurationSeconds())
                 .totalScore(totalScore)
-                .maxTotalScore(maxTotalScore)
                 .analysisStatus(analysisStatus != null ? analysisStatus.name() : null)
                 .createdAt(session.getCreatedAt())
                 .build();

@@ -3,25 +3,36 @@ package com.example.pitchmateserver.session.dto;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
 @Builder
 public class SessionCompareResponse {
 
-    private SessionSummaryResponse session1;
-    private SessionSummaryResponse session2;
+    private CompareSessionInfo session1;
+    private CompareSessionInfo session2;
 
     private ScoreCompare evaluationScores;
-    private AnalysisCompare analysisData;
+    private CategoryCompare categoryData;
+    private String session1OverallComment;
+    private String session2OverallComment;
+
+    @Getter
+    @Builder
+    public static class CompareSessionInfo {
+        private Long videoId;
+        private String videoTitle;
+        private Integer totalScore;
+        private Integer durationSeconds;
+        private LocalDateTime createdAt;
+    }
 
     @Getter
     @Builder
     public static class ScoreCompare {
         private Integer session1TotalScore;
         private Integer session2TotalScore;
-        private Integer session1MaxScore;
-        private Integer session2MaxScore;
         private List<RubricCompare> rubricComparisons;
     }
 
@@ -32,17 +43,16 @@ public class SessionCompareResponse {
         private String rubricTitle;
         private Integer session1Score;
         private Integer session2Score;
-        private Integer maxScore;
     }
 
     @Getter
     @Builder
-    public static class AnalysisCompare {
-        private Double session1SpeechRateWpm;
-        private Double session2SpeechRateWpm;
-        private Double session1SilenceRatio;
-        private Double session2SilenceRatio;
-        private Integer session1FillerWordCount;
-        private Integer session2FillerWordCount;
+    public static class CategoryCompare {
+        private Double session1SpeechAvg;
+        private Double session2SpeechAvg;
+        private Double session1NonVerbalAvg;
+        private Double session2NonVerbalAvg;
+        private Double session1DeliveryAvg;
+        private Double session2DeliveryAvg;
     }
 }

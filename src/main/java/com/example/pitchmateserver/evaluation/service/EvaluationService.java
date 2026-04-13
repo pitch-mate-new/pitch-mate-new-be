@@ -70,7 +70,7 @@ public class EvaluationService {
             String fileUri = geminiService.uploadVideoFile(video.getVideoUrl());
             List<String> rubricTitles = rubrics.stream().map(Rubric::getTitle).toList();
             GeminiService.GeminiEvaluationResult geminiResult =
-                    geminiService.generateEvaluation(fileUri, rubricTitles, maxScore);
+                    geminiService.generateEvaluation(fileUri, rubricTitles, maxScore, video.getDescription());
             log.info("Gemini AI 평가 생성 완료");
 
             // 총평 저장

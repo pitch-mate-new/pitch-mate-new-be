@@ -35,27 +35,21 @@ public class HistoryController {
                     - `COMPLETED`: 분석 완료 → totalScore 점수 표시
                     - `FAILED`: 분석 실패
 
-                    **쿼리 파라미터**
-                    - `type`: UPLOAD 또는 RECORD 필터링 (미입력 시 전체)
-                    - `limit`: 반환할 최대 개수 (대시보드 최근 4개: limit=4)
-
                     **에러 응답**
                     - 401: 인증 토큰 없음 또는 만료
                     """
     )
     @GetMapping
     public ResponseEntity<ApiResponse<List<SessionSummaryResponse>>> getMyHistory(
-            @CurrentUser Long userId,
-            @Parameter(description = "영상 유형 필터: UPLOAD 또는 RECORD") @RequestParam(required = false) String type,
-            @Parameter(description = "반환할 최대 개수 (예: 4)") @RequestParam(required = false) Integer limit) {
-        return ResponseEntity.ok(ApiResponse.ok(sessionService.getMyHistory(userId, type, limit)));
+            @CurrentUser Long userId) {
+        return ResponseEntity.ok(ApiResponse.ok(sessionService.getMyHistory(userId)));
     }
 
     @Operation(
-            summary = "두 회차 비교",
+            summary = "두 영상 비교",
             description = """
-                    두 세션의 루브릭 점수와 AI 분석 데이터를 비교합니다.
-                    sessionId1, sessionId2는 히스토리 목록의 id 값입니다.
+                    두 영상의 루브릭 점수와 AI 분석 데이터를 비교합니다.
+                    videoId1, videoId2는 비교할 영상의 ID입니다.
 
                     **에러 응답**
                     - 401: 인증 토큰 없음 또는 만료
@@ -64,15 +58,15 @@ public class HistoryController {
     )
     @GetMapping("/compare")
     public ResponseEntity<ApiResponse<SessionCompareResponse>> compareSessions(
-            @Parameter(description = "비교할 첫 번째 세션 ID") @RequestParam Long sessionId1,
-            @Parameter(description = "비교할 두 번째 세션 ID") @RequestParam Long sessionId2) {
-        return ResponseEntity.ok(ApiResponse.ok(sessionService.compareSessions(sessionId1, sessionId2)));
+            @Parameter(description = "비교할 첫 번째 영상 ID") @RequestParam Long videoId1,
+            @Parameter(description = "비교할 두 번째 영상 ID") @RequestParam Long videoId2) {
+        return ResponseEntity.ok(ApiResponse.ok(sessionService.compareSessions(videoId1, videoId2)));
     }
 
     @Operation(
             summary = "히스토리 상세 조회",
             description = """
-                    특정 연습 기록의 상세 정보를 반환합니다.
+                    영상 ID로 상세 정보를 반환합니다.
                     - video: 영상 정보
                     - feedbacks: AI 구간별 피드백 목록
                     - evaluations: 루브릭 평가 (10개 항목별 점수 + AI 총평)
@@ -83,9 +77,9 @@ public class HistoryController {
                     - 404 (code 4050): 세션을 찾을 수 없음
                     """
     )
-    @GetMapping("/{historyId}")
+    @GetMapping("/video/{videoId}")
     public ResponseEntity<ApiResponse<SessionDetailResponse>> getSessionDetail(
-            @PathVariable Long historyId) {
-        return ResponseEntity.ok(ApiResponse.ok(sessionService.getSessionDetail(historyId)));
+            @PathVariable Long videoId) {
+        return ResponseEntity.ok(ApiResponse.ok(sessionService.getSessionDetail(videoId)));
     }
 }

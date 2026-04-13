@@ -15,7 +15,6 @@ import com.example.pitchmateserver.session.dto.SessionSummaryResponse;
 import com.example.pitchmateserver.session.entity.Session;
 import com.example.pitchmateserver.session.repository.SessionRepository;
 import com.example.pitchmateserver.user.entity.User;
-import com.example.pitchmateserver.user.service.UserService;
 import com.example.pitchmateserver.video.dto.VideoResponse;
 import com.example.pitchmateserver.video.entity.Video;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +25,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -37,7 +35,6 @@ public class SessionService {
     private final FeedbackRepository feedbackRepository;
     private final EvaluationRepository evaluationRepository;
     private final AnalysisRepository analysisRepository;
-    private final UserService userService;
 
     /**
      * 영상 등록 시 자동으로 세션(히스토리 회차) 생성
@@ -55,68 +52,71 @@ public class SessionService {
         );
     }
 
-    // 히스토리 목록 조회 (type 필터, limit 제한 가능)
-    public List<SessionSummaryResponse> getMyHistory(Long userId, String videoType, Integer limit) {
-        Stream<Session> stream = sessionRepository.findByUserIdOrderByCreatedAtDesc(userId)
-                .stream()
-                .filter(s -> videoType == null || s.getVideo().getType().name().equalsIgnoreCase(videoType));
-        if (limit != null && limit > 0) {
-            stream = stream.limit(limit);
-        }
-        return toSummaryWithScores(stream.toList());
+    // 히스토리 목록 조회
+    public List<SessionSummaryResponse> getMyHistory(Long userId) {
+        List<Session> sessions = sessionRepository.findByUserIdOrderByCreatedAtDesc(userId);
+        return toSummaryWithScores(sessions);
     }
 
     // 히스토리 상세 조회 (영상 + 피드백 + 평가 + 분석)
-    public SessionDetailResponse getSessionDetail(Long sessionId) {
-        Session session = findSession(sessionId);
-        Long videoId = session.getVideo().getId();
-
+    public SessionDetailResponse getSessionDetail(Long videoId) {
+        Session session = findSessionByVideoId(videoId);
         VideoResponse video = VideoResponse.from(session.getVideo());
+
+        var rawEvals = evaluationRepository.findByVideoIdWithScores(videoId);
         List<FeedbackResponse> feedbacks = feedbackRepository
                 .findByVideoIdOrderByStartTimeSecondsAsc(videoId)
                 .stream().map(FeedbackResponse::from).toList();
-        List<EvaluationResponse> evaluations = evaluationRepository
-                .findByVideoIdWithScores(videoId)
-                .stream().map(EvaluationResponse::from).toList();
+        List<EvaluationResponse> evaluations = rawEvals.stream()
+                .map(EvaluationResponse::from).toList();
         AnalysisResponse analysis = analysisRepository.findByVideoId(videoId)
                 .map(AnalysisResponse::from)
                 .orElse(null);
 
-        return SessionDetailResponse.of(session, video, feedbacks, evaluations, analysis);
-    }
-
-    // 두 세션 비교
-    public SessionCompareResponse compareSessions(Long sessionId1, Long sessionId2) {
-        Session s1 = findSession(sessionId1);
-        Session s2 = findSession(sessionId2);
-
-        // 평가 비교
-        var eval1 = evaluationRepository.findByVideoIdWithScores(s1.getVideo().getId());
-        var eval2 = evaluationRepository.findByVideoIdWithScores(s2.getVideo().getId());
-
-        SessionCompareResponse.ScoreCompare scoreCompare = buildScoreCompare(eval1, eval2);
-
-        // 분석 비교
-        var an1 = analysisRepository.findByVideoId(s1.getVideo().getId()).orElse(null);
-        var an2 = analysisRepository.findByVideoId(s2.getVideo().getId()).orElse(null);
-
-        SessionCompareResponse.AnalysisCompare analysisCompare = SessionCompareResponse.AnalysisCompare.builder()
-                .session1SpeechRateWpm(an1 != null ? an1.getSpeechRateWpm() : null)
-                .session2SpeechRateWpm(an2 != null ? an2.getSpeechRateWpm() : null)
-                .session1SilenceRatio(an1 != null ? an1.getSilenceRatio() : null)
-                .session2SilenceRatio(an2 != null ? an2.getSilenceRatio() : null)
-                .session1FillerWordCount(an1 != null ? an1.getFillerWordCount() : null)
-                .session2FillerWordCount(an2 != null ? an2.getFillerWordCount() : null)
+        SessionDetailResponse.CategoryScores categoryScores = SessionDetailResponse.CategoryScores.builder()
+                .speechAvg(calcCategoryAvg(rawEvals, "스피치"))
+                .nonVerbalAvg(calcCategoryAvg(rawEvals, "비언어"))
+                .deliveryAvg(calcCategoryAvg(rawEvals, "전달력·표현력"))
                 .build();
 
-        var status1 = an1 != null ? an1.getStatus() : null;
-        var status2 = an2 != null ? an2.getStatus() : null;
+        return SessionDetailResponse.of(video, feedbacks, evaluations, analysis, categoryScores);
+    }
+
+    // 두 영상 비교 (videoId 기반)
+    public SessionCompareResponse compareSessions(Long videoId1, Long videoId2) {
+        Session s1 = findSessionByVideoId(videoId1);
+        Session s2 = findSessionByVideoId(videoId2);
+
+        var eval1 = evaluationRepository.findByVideoIdWithScores(videoId1);
+        var eval2 = evaluationRepository.findByVideoIdWithScores(videoId2);
+
+        SessionCompareResponse.ScoreCompare scoreCompare = buildScoreCompare(eval1, eval2);
+        SessionCompareResponse.CategoryCompare categoryCompare = buildCategoryCompare(eval1, eval2);
+
+        Integer score1 = eval1.isEmpty() ? null : eval1.get(0).getTotalScore();
+        Integer score2 = eval2.isEmpty() ? null : eval2.get(0).getTotalScore();
+        String comment1 = eval1.isEmpty() ? null : eval1.get(0).getComment();
+        String comment2 = eval2.isEmpty() ? null : eval2.get(0).getComment();
 
         return SessionCompareResponse.builder()
-                .session1(SessionSummaryResponse.from(s1, null, null, status1))
-                .session2(SessionSummaryResponse.from(s2, null, null, status2))
+                .session1(SessionCompareResponse.CompareSessionInfo.builder()
+                        .videoId(s1.getVideo().getId())
+                        .videoTitle(s1.getVideo().getTitle())
+                        .totalScore(score1)
+                        .durationSeconds(s1.getVideo().getDurationSeconds())
+                        .createdAt(s1.getCreatedAt())
+                        .build())
+                .session2(SessionCompareResponse.CompareSessionInfo.builder()
+                        .videoId(s2.getVideo().getId())
+                        .videoTitle(s2.getVideo().getTitle())
+                        .totalScore(score2)
+                        .durationSeconds(s2.getVideo().getDurationSeconds())
+                        .createdAt(s2.getCreatedAt())
+                        .build())
                 .evaluationScores(scoreCompare)
-                .analysisData(analysisCompare)
+                .categoryData(categoryCompare)
+                .session1OverallComment(comment1)
+                .session2OverallComment(comment2)
                 .build();
     }
 
@@ -146,17 +146,38 @@ public class SessionService {
                     .rubricTitle(s1Score.getRubric().getTitle())
                     .session1Score(s1Score.getScore())
                     .session2Score(s2Score != null ? s2Score.getScore() : null)
-                    .maxScore(s1Score.getRubric().getMaxScore())
                     .build());
         });
 
         return SessionCompareResponse.ScoreCompare.builder()
                 .session1TotalScore(e1.getTotalScore())
                 .session2TotalScore(e2.getTotalScore())
-                .session1MaxScore(e1.getMaxTotalScore())
-                .session2MaxScore(e2.getMaxTotalScore())
                 .rubricComparisons(rubricComparisons)
                 .build();
+    }
+
+    private SessionCompareResponse.CategoryCompare buildCategoryCompare(
+            List<com.example.pitchmateserver.evaluation.entity.Evaluation> eval1,
+            List<com.example.pitchmateserver.evaluation.entity.Evaluation> eval2) {
+
+        return SessionCompareResponse.CategoryCompare.builder()
+                .session1SpeechAvg(calcCategoryAvg(eval1, "스피치"))
+                .session2SpeechAvg(calcCategoryAvg(eval2, "스피치"))
+                .session1NonVerbalAvg(calcCategoryAvg(eval1, "비언어"))
+                .session2NonVerbalAvg(calcCategoryAvg(eval2, "비언어"))
+                .session1DeliveryAvg(calcCategoryAvg(eval1, "전달력·표현력"))
+                .session2DeliveryAvg(calcCategoryAvg(eval2, "전달력·표현력"))
+                .build();
+    }
+
+    private Double calcCategoryAvg(
+            List<com.example.pitchmateserver.evaluation.entity.Evaluation> evals, String category) {
+        if (evals.isEmpty()) return null;
+        var scores = evals.get(0).getScores().stream()
+                .filter(s -> category.equals(s.getRubric().getCategory()))
+                .toList();
+        if (scores.isEmpty()) return null;
+        return scores.stream().mapToInt(EvaluationScore::getScore).average().orElse(0.0);
     }
 
     // 세션 목록을 점수 + 분석상태와 함께 SummaryResponse로 변환 (N+1 방지)
@@ -185,15 +206,14 @@ public class SessionService {
                     return SessionSummaryResponse.from(
                             s,
                             eval != null ? eval.getTotalScore() : null,
-                            eval != null ? eval.getMaxTotalScore() : null,
                             status
                     );
                 })
                 .toList();
     }
 
-    private Session findSession(Long sessionId) {
-        return sessionRepository.findById(sessionId)
+    private Session findSessionByVideoId(Long videoId) {
+        return sessionRepository.findByVideoId(videoId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.SESSION_NOT_FOUND));
     }
 }

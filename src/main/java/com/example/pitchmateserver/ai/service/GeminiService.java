@@ -24,7 +24,7 @@ public class GeminiService {
     @Value("${gemini.api-key}")
     private String apiKey;
 
-    @Value("${gemini.model:gemini-1.5-flash}")
+    @Value("${gemini.model:gemini-2.0-flash}")
     private String model;
 
     @Value("${file.upload-dir}")
@@ -118,9 +118,13 @@ public class GeminiService {
     /**
      * 영상 분석 - 말 속도, 침묵 비율, 필러워드 등
      */
-    public GeminiAnalysisResult analyzeVideo(String fileUri) {
+    public GeminiAnalysisResult analyzeVideo(String fileUri, String description) {
+        String descriptionContext = (description != null && !description.isBlank())
+                ? "\n\n영상 설명 (참고): " + description
+                : "";
         String prompt = """
                 이 발표/면접 연습 영상을 분석해줘. 아래 JSON 형식으로만 응답해. 다른 텍스트는 절대 포함하지 마.
+                """ + descriptionContext + """
 
                 {
                   "speechRateWpm": <분당 단어 수 (숫자)>,
@@ -154,10 +158,14 @@ public class GeminiService {
     /**
      * AI 구간 피드백 생성
      */
-    public List<GeminiFeedbackResult> generateFeedbacks(String fileUri) {
+    public List<GeminiFeedbackResult> generateFeedbacks(String fileUri, String description) {
+        String descriptionContext = (description != null && !description.isBlank())
+                ? "\n영상 설명 (참고): " + description + "\n"
+                : "";
         String prompt = """
                 이 발표/면접 연습 영상을 보고 개선이 필요한 구간에 대해 구체적인 피드백을 3-5개 작성해줘.
                 아래 JSON 배열 형식으로만 응답해. 다른 텍스트는 절대 포함하지 마.
+                """ + descriptionContext + """
 
                 [
                   {
@@ -195,12 +203,16 @@ public class GeminiService {
     /**
      * AI 루브릭 기반 평가 생성 (총평 포함)
      */
-    public GeminiEvaluationResult generateEvaluation(String fileUri, List<String> rubricTitles, int maxScore) {
+    public GeminiEvaluationResult generateEvaluation(String fileUri, List<String> rubricTitles, int maxScore, String description) {
         String rubricList = String.join(", ", rubricTitles);
+        String descriptionContext = (description != null && !description.isBlank())
+                ? "\n영상 설명 (참고): " + description + "\n"
+                : "";
         String prompt = String.format("""
                 이 발표/면접 연습 영상을 아래 평가 기준으로 채점해줘.
                 각 항목을 1-%d점으로 채점하고, 한국어로 코멘트를 작성해줘.
                 아래 JSON 형식으로만 응답해. 다른 텍스트는 절대 포함하지 마.
+                """ + descriptionContext + """
 
                 평가 기준: %s
 
