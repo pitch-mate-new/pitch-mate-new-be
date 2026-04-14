@@ -48,11 +48,15 @@ public class SessionCompareResponse {
     @Getter
     @Builder
     public static class CategoryCompare {
-        private Double session1SpeechAvg;
-        private Double session2SpeechAvg;
-        private Double session1NonVerbalAvg;
-        private Double session2NonVerbalAvg;
-        private Double session1DeliveryAvg;
-        private Double session2DeliveryAvg;
+        private CategoryAvg session1;
+        private CategoryAvg session2;
+    }
+
+    @Getter
+    @Builder
+    public static class CategoryAvg {
+        private Double speechAvg;
+        private Double nonVerbalAvg;
+        private Double deliveryAvg;
     }
 }

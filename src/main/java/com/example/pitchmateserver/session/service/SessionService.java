@@ -161,12 +161,16 @@ public class SessionService {
             List<com.example.pitchmateserver.evaluation.entity.Evaluation> eval2) {
 
         return SessionCompareResponse.CategoryCompare.builder()
-                .session1SpeechAvg(calcCategoryAvg(eval1, "스피치"))
-                .session2SpeechAvg(calcCategoryAvg(eval2, "스피치"))
-                .session1NonVerbalAvg(calcCategoryAvg(eval1, "비언어"))
-                .session2NonVerbalAvg(calcCategoryAvg(eval2, "비언어"))
-                .session1DeliveryAvg(calcCategoryAvg(eval1, "전달력·표현력"))
-                .session2DeliveryAvg(calcCategoryAvg(eval2, "전달력·표현력"))
+                .session1(SessionCompareResponse.CategoryAvg.builder()
+                        .speechAvg(calcCategoryAvg(eval1, "스피치"))
+                        .nonVerbalAvg(calcCategoryAvg(eval1, "비언어"))
+                        .deliveryAvg(calcCategoryAvg(eval1, "전달력·표현력"))
+                        .build())
+                .session2(SessionCompareResponse.CategoryAvg.builder()
+                        .speechAvg(calcCategoryAvg(eval2, "스피치"))
+                        .nonVerbalAvg(calcCategoryAvg(eval2, "비언어"))
+                        .deliveryAvg(calcCategoryAvg(eval2, "전달력·표현력"))
+                        .build())
                 .build();
     }
 
