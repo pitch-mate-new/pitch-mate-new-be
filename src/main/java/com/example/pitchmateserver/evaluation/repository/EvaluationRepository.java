@@ -15,4 +15,8 @@ public interface EvaluationRepository extends JpaRepository<Evaluation, Long> {
 
     @Query("SELECT e FROM Evaluation e WHERE e.video.id IN :videoIds ORDER BY e.createdAt DESC")
     List<Evaluation> findByVideoIdIn(@Param("videoIds") List<Long> videoIds);
+
+    boolean existsByVideoIdAndType(Long videoId, Evaluation.EvaluationType type);
+
+    Optional<Evaluation> findFirstByVideoIdAndTypeOrderByCreatedAtDesc(Long videoId, Evaluation.EvaluationType type);
 }

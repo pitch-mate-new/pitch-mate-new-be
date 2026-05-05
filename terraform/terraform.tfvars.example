@@ -1,0 +1,7 @@
+# 이 파일을 terraform.tfvars로 복사해서 실제 값 채워넣기
+# terraform.tfvars는 .gitignore에 추가할 것
+
+aws_region    = "ap-northeast-2"
+instance_type = "t2.micro"
+key_name      = "pitchmate-key"       # AWS에 등록한 키페어 이름
+my_ip         = "123.456.789.0/32"    # 본인 IP/32 (https://checkip.amazonaws.com)

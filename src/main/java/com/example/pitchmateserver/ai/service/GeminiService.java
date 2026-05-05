@@ -1,5 +1,6 @@
 package com.example.pitchmateserver.ai.service;
 
+import com.example.pitchmateserver.common.storage.SupabaseStorageService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -10,9 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 
 @Slf4j
@@ -27,28 +25,27 @@ public class GeminiService {
     @Value("${gemini.model:gemini-2.0-flash}")
     private String model;
 
-    @Value("${file.upload-dir}")
-    private String uploadDir;
-
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
+    private final SupabaseStorageService storageService;
 
-    public GeminiService(ObjectMapper objectMapper) {
+    public GeminiService(ObjectMapper objectMapper, SupabaseStorageService storageService) {
         this.restClient = RestClient.builder()
                 .baseUrl(GEMINI_BASE_URL)
                 .build();
         this.objectMapper = objectMapper;
+        this.storageService = storageService;
     }
 
     /**
      * 영상 파일을 Gemini File API에 업로드하고 fileUri 반환
+     * videoUrl: Supabase Storage 공개 URL
      */
     public String uploadVideoFile(String videoUrl) throws IOException {
-        // videoUrl 예: /videos/uuid_filename.mp4
-        Path videoPath = Paths.get(uploadDir, videoUrl);
-        byte[] fileBytes = Files.readAllBytes(videoPath);
+        // Supabase Storage에서 영상 파일 다운로드
+        byte[] fileBytes = storageService.downloadFile(videoUrl);
         long fileSize = fileBytes.length;
-        String fileName = videoPath.getFileName().toString();
+        String fileName = videoUrl.substring(videoUrl.lastIndexOf('/') + 1);
         String mimeType = "video/mp4";
 
         // Step 1: 업로드 세션 시작

@@ -40,3 +40,11 @@ uploads/
 구현해야할 것/
 .DS_Store
 .claude/
+
+# Terraform
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/terraform.tfvars
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/*.pem

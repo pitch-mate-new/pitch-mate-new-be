@@ -42,12 +42,14 @@ public class EvaluationResponse {
         private Long rubricId;
         private String rubricTitle;
         private Integer score;
+        private String comment;
 
         public static ScoreResponse from(EvaluationScore s) {
             return ScoreResponse.builder()
                     .rubricId(s.getRubric().getId())
                     .rubricTitle(s.getRubric().getTitle())
                     .score(s.getScore())
+                    .comment(s.getComment())
                     .build();
         }
     }

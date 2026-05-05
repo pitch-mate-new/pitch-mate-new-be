@@ -5,6 +5,8 @@ import com.example.pitchmateserver.ai.entity.Analysis;
 import com.example.pitchmateserver.ai.repository.AnalysisRepository;
 import com.example.pitchmateserver.common.exception.BusinessException;
 import com.example.pitchmateserver.common.exception.ErrorCode;
+import com.example.pitchmateserver.evaluation.service.EvaluationService;
+import com.example.pitchmateserver.feedback.service.FeedbackService;
 import com.example.pitchmateserver.video.entity.Video;
 import com.example.pitchmateserver.video.service.VideoService;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +24,8 @@ public class AnalysisService {
     private final AnalysisRepository analysisRepository;
     private final VideoService videoService;
     private final GeminiService geminiService;
+    private final EvaluationService evaluationService;
+    private final FeedbackService feedbackService;
 
     @Transactional
     public AnalysisResponse requestAnalysis(Long videoId) {
@@ -37,30 +41,30 @@ public class AnalysisService {
                         .build()
         );
 
-        runAnalysisAsync(analysis.getId(), video.getVideoUrl(), video.getDescription());
+        runAnalysisAsync(analysis.getId(), video.getId(), video.getVideoUrl(), video.getDescription());
 
         return AnalysisResponse.from(analysis);
     }
 
     @Async
-    public void runAnalysisAsync(Long analysisId, String videoUrl, String description) {
+    public void runAnalysisAsync(Long analysisId, Long videoId, String videoUrl, String description) {
         Analysis analysis = analysisRepository.findById(analysisId).orElseThrow();
 
+        String fileUri = null;
         try {
             analysis.startProcessing();
             analysisRepository.save(analysis);
 
-            log.info("Gemini 영상 분석 시작: analysisId={}, videoUrl={}", analysisId, videoUrl);
+            log.info("Gemini 영상 업로드 시작: analysisId={}", analysisId);
 
-            // 1. 영상 파일 Gemini에 업로드
-            String fileUri = geminiService.uploadVideoFile(videoUrl);
+            // 1. 영상 파일 Gemini에 업로드 (1번만)
+            fileUri = geminiService.uploadVideoFile(videoUrl);
             log.info("Gemini 파일 업로드 완료: fileUri={}", fileUri);
 
-            // 2. 영상 분석 요청
+            // 2. 영상 분석
             GeminiService.GeminiAnalysisResult result = geminiService.analyzeVideo(fileUri, description);
             log.info("Gemini 분석 결과: speechRate={}, fillerCount={}", result.speechRateWpm(), result.fillerWordCount());
 
-            // 3. 분석 완료 저장
             analysis = analysisRepository.findById(analysisId).orElseThrow();
             analysis.complete(
                     result.speechRateWpm(),
@@ -78,6 +82,20 @@ public class AnalysisService {
                 a.fail(e.getMessage());
                 analysisRepository.save(a);
             });
+        }
+
+        // 3. 같은 fileUri로 AI 평가 생성 (분석 성공 여부와 무관하게 시도)
+        try {
+            evaluationService.generateAiEvaluationWithUri(videoId, fileUri);
+        } catch (Exception e) {
+            log.error("AI 평가 실패: videoId={}, error={}", videoId, e.getMessage());
+        }
+
+        // 4. 같은 fileUri로 AI 피드백 생성
+        try {
+            feedbackService.generateAiFeedbacksWithUri(videoId, fileUri);
+        } catch (Exception e) {
+            log.error("AI 피드백 실패: videoId={}, error={}", videoId, e.getMessage());
         }
     }
 

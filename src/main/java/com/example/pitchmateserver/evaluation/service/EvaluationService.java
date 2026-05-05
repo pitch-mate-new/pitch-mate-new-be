@@ -13,14 +13,10 @@ import com.example.pitchmateserver.video.entity.Video;
 import com.example.pitchmateserver.video.service.VideoService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 
 @Slf4j
@@ -34,23 +30,42 @@ public class EvaluationService {
     private final VideoService videoService;
     private final GeminiService geminiService;
 
-    @Lazy
-    @Autowired
-    private EvaluationService self;
-
-    // 영상 업로드 시 자동 호출 - 비동기로 AI 평가 실행
-    @Async
-    public void generateAiEvaluationAsync(Long videoId) {
+    /**
+     * API 직접 호출 - 이미 평가가 있으면 기존 반환, 없으면 Gemini 업로드 후 생성
+     */
+    @Transactional
+    public EvaluationResponse generateAiEvaluation(Long videoId) {
+        if (evaluationRepository.existsByVideoIdAndType(videoId, Evaluation.EvaluationType.AI)) {
+            log.info("AI 평가 이미 존재, 기존 반환: videoId={}", videoId);
+            return evaluationRepository.findFirstByVideoIdAndTypeOrderByCreatedAtDesc(videoId, Evaluation.EvaluationType.AI)
+                    .map(EvaluationResponse::from)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.EVALUATION_NOT_FOUND));
+        }
+        Video video = videoService.findVideo(videoId);
         try {
-            self.generateAiEvaluation(videoId);
+            log.info("Gemini AI 평가 생성 시작: videoId={}", videoId);
+            String fileUri = geminiService.uploadVideoFile(video.getVideoUrl());
+            return buildAndSaveEvaluation(video, fileUri);
         } catch (Exception e) {
-            log.error("AI 평가 자동 실행 실패: videoId={}, error={}", videoId, e.getMessage());
+            log.error("Gemini 파일 업로드 실패, 기본값 사용: {}", e.getMessage());
+            return buildAndSaveEvaluation(video, null);
         }
     }
 
+    /**
+     * 내부 호출용 - AnalysisService에서 이미 업로드한 fileUri를 전달받아 사용 (Gemini 중복 업로드 방지)
+     */
     @Transactional
-    public EvaluationResponse generateAiEvaluation(Long videoId) {
+    public void generateAiEvaluationWithUri(Long videoId, String fileUri) {
+        if (evaluationRepository.existsByVideoIdAndType(videoId, Evaluation.EvaluationType.AI)) {
+            log.info("AI 평가 이미 존재, 건너뜀: videoId={}", videoId);
+            return;
+        }
         Video video = videoService.findVideo(videoId);
+        buildAndSaveEvaluation(video, fileUri);
+    }
+
+    private EvaluationResponse buildAndSaveEvaluation(Video video, String fileUri) {
         List<Rubric> rubrics = rubricRepository.findAllByOrderByDisplayOrderAsc();
         int maxScore = rubrics.isEmpty() ? 5 : rubrics.get(0).getMaxScore();
 
@@ -66,14 +81,12 @@ public class EvaluationService {
         List<EvaluationScore> scores;
 
         try {
-            log.info("Gemini AI 평가 생성 시작: videoId={}", videoId);
-            String fileUri = geminiService.uploadVideoFile(video.getVideoUrl());
+            if (fileUri == null) throw new IllegalArgumentException("fileUri 없음, fallback 사용");
             List<String> rubricTitles = rubrics.stream().map(Rubric::getTitle).toList();
             GeminiService.GeminiEvaluationResult geminiResult =
                     geminiService.generateEvaluation(fileUri, rubricTitles, maxScore, video.getDescription());
-            log.info("Gemini AI 평가 생성 완료");
+            log.info("Gemini AI 평가 생성 완료: videoId={}", video.getId());
 
-            // 총평 저장
             evaluation.updateComment(geminiResult.overallComment());
 
             scores = rubrics.stream()

@@ -3,7 +3,7 @@ package com.example.pitchmateserver.video.service;
 import com.example.pitchmateserver.ai.service.AnalysisService;
 import com.example.pitchmateserver.common.exception.BusinessException;
 import com.example.pitchmateserver.common.exception.ErrorCode;
-import com.example.pitchmateserver.evaluation.service.EvaluationService;
+import com.example.pitchmateserver.common.storage.SupabaseStorageService;
 import com.example.pitchmateserver.session.service.SessionService;
 import com.example.pitchmateserver.user.entity.User;
 import com.example.pitchmateserver.user.service.UserService;
@@ -11,19 +11,12 @@ import com.example.pitchmateserver.video.dto.VideoResponse;
 import com.example.pitchmateserver.video.dto.VideoUpdateRequest;
 import com.example.pitchmateserver.video.entity.Video;
 import com.example.pitchmateserver.video.repository.VideoRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
-import java.util.UUID;
 
 @Service
 @Transactional(readOnly = true)
@@ -33,21 +26,18 @@ public class VideoService {
     private final UserService userService;
     private final SessionService sessionService;
     private final AnalysisService analysisService;
-    private final EvaluationService evaluationService;
-
-    @Value("${file.upload-dir}")
-    private String uploadDir;
+    private final SupabaseStorageService storageService;
 
     public VideoService(VideoRepository videoRepository,
                         UserService userService,
                         @Lazy SessionService sessionService,
                         @Lazy AnalysisService analysisService,
-                        @Lazy EvaluationService evaluationService) {
+                        SupabaseStorageService storageService) {
         this.videoRepository = videoRepository;
         this.userService = userService;
         this.sessionService = sessionService;
         this.analysisService = analysisService;
-        this.evaluationService = evaluationService;
+        this.storageService = storageService;
     }
 
     @Transactional
@@ -57,7 +47,7 @@ public class VideoService {
                                      // , Video.PracticeType practiceType
     ) {
         User user = userService.findUser(userId);
-        String videoUrl = saveFile(file, "videos");
+        String videoUrl = storageService.uploadFile(file);
 
         String defaultTitle = videoType == Video.VideoType.RECORD
                 ? "녹화 영상 " + System.currentTimeMillis()
@@ -75,9 +65,8 @@ public class VideoService {
 
         sessionService.createSession(user, video);
 
-        // 영상 업로드 즉시 AI 분석 + 평가 자동 시작 (비동기)
+        // 영상 업로드 즉시 AI 분석 + 평가 + 피드백 자동 시작 (비동기, Gemini 업로드 1회)
         analysisService.requestAnalysis(video.getId());
-        evaluationService.generateAiEvaluationAsync(video.getId());
 
         return VideoResponse.from(video);
     }
@@ -119,15 +108,4 @@ public class VideoService {
         return video;
     }
 
-    private String saveFile(MultipartFile file, String subDir) {
-        try {
-            String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
-            Path path = Paths.get(uploadDir, subDir);
-            Files.createDirectories(path);
-            file.transferTo(path.resolve(fileName));
-            return "/" + subDir + "/" + fileName;
-        } catch (IOException e) {
-            throw new BusinessException(ErrorCode.FILE_UPLOAD_FAILED);
-        }
-    }
 }

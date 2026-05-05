@@ -1,4 +1,4 @@
-# PitchMate Server - 코드 가이드
+dksl # PitchMate Server - 코드 가이드
 
 > 발표·면접 연습 영상 기반 AI 피드백 플랫폼  
 > Spring Boot / Java 21 / Supabase PostgreSQL / Gemini AI
