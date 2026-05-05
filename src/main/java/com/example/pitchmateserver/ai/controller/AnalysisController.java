@@ -25,13 +25,13 @@ public class AnalysisController {
             summary = "AI 분석 요청",
             description = """
                     영상에 대한 AI 분석을 요청합니다.
-                    영상 업로드 시 자동으로 실행되므로 별도 호출이 필요 없습니다.
+                    **영상 업로드 시 자동으로 실행되므로 별도 호출이 필요 없습니다.**
                     분석은 비동기로 진행되며 즉시 PENDING 상태로 응답합니다.
                     분석이 이미 존재하면 기존 결과를 반환합니다.
 
                     **에러 응답**
                     - 401: 인증 토큰 없음 또는 만료
-                    - 404 (code 4020): 영상을 찾을 수 없음
+                    - 404 (code 4008): 영상을 찾을 수 없음
                     """
     )
     @PostMapping("/api/videos/{videoId}/analysis")
@@ -45,12 +45,17 @@ public class AnalysisController {
     @Operation(
             summary = "분석 상태 조회",
             description = """
-                    분석 ID로 현재 분석 상태만 조회합니다.
-                    status 값: PENDING / IN_PROGRESS / COMPLETED / FAILED
+                    분석 ID로 현재 분석 상태만 간략하게 조회합니다.
+
+                    **status 값**
+                    - `PENDING`: 분석 대기 중
+                    - `IN_PROGRESS`: 분석 진행 중
+                    - `COMPLETED`: 분석 완료
+                    - `FAILED`: 분석 실패
 
                     **에러 응답**
                     - 401: 인증 토큰 없음 또는 만료
-                    - 404 (code 4050): 분석 결과를 찾을 수 없음
+                    - 404 (code 4010): 분석 결과를 찾을 수 없음
                     """
     )
     @GetMapping("/api/analysis/{analysisId}/status")
@@ -65,14 +70,14 @@ public class AnalysisController {
     }
 
     @Operation(
-            summary = "분석 결과 조회",
+            summary = "분석 결과 조회 (analysisId)",
             description = """
                     분석 ID로 전체 분석 결과를 조회합니다.
-                    COMPLETED 상태일 때만 speechRateWpm, silenceRatio, fillerWordCount 등이 채워집니다.
+                    `COMPLETED` 상태일 때만 `speechRateWpm`, `silenceRatio`, `fillerWordCount` 등이 채워집니다.
 
                     **에러 응답**
                     - 401: 인증 토큰 없음 또는 만료
-                    - 404 (code 4050): 분석 결과를 찾을 수 없음
+                    - 404 (code 4010): 분석 결과를 찾을 수 없음
                     """
     )
     @GetMapping("/api/analysis/{analysisId}")
@@ -82,14 +87,13 @@ public class AnalysisController {
     }
 
     @Operation(
-            summary = "영상 기준 분석 결과 조회",
+            summary = "분석 결과 조회 (videoId)",
             description = """
-                    영상 ID로 해당 영상의 분석 결과를 조회합니다.
-                    analysisId를 모를 때 사용하세요.
+                    영상 ID로 해당 영상의 분석 결과를 조회합니다. `analysisId`를 모를 때 사용하세요.
 
                     **에러 응답**
                     - 401: 인증 토큰 없음 또는 만료
-                    - 404 (code 4050): 분석 결과를 찾을 수 없음
+                    - 404 (code 4010): 분석 결과를 찾을 수 없음
                     """
     )
     @GetMapping("/api/videos/{videoId}/analysis")
@@ -105,7 +109,7 @@ public class AnalysisController {
 
                     **에러 응답**
                     - 401: 인증 토큰 없음 또는 만료
-                    - 404 (code 4050): 분석 결과를 찾을 수 없음
+                    - 404 (code 4010): 분석 결과를 찾을 수 없음
                     """
     )
     @DeleteMapping("/api/analysis/{analysisId}")

@@ -57,11 +57,14 @@ public class AuthController {
     @Operation(
             summary = "회원가입",
             description = """
-                    이메일, 비밀번호(8자 이상), 닉네임(2~30자)으로 회원가입합니다.
-                    role은 서버에서 자동으로 MENTEE로 설정되므로 보내지 않아도 됩니다.
+                    이메일, 비밀번호(8자 이상), 닉네임(2~30자), 역할로 회원가입합니다.
+
+                    **role 값**
+                    - `MENTOR`: 멘토 계정 (멘티 연결 수락/거절, 구간 피드백·총평 작성 가능)
+                    - `MENTEE`: 멘티 계정 (멘토 검색·연결 신청, 영상 업로드 가능)
 
                     **에러 응답**
-                    - 400: 이메일 형식 불일치 / 비밀번호 8자 미만 / 닉네임 미입력
+                    - 400 (code 4000): 입력값 형식 오류 (이메일 형식, 비밀번호 8자 미만 등)
                     - 409 (code 4001): 이미 사용 중인 이메일
                     - 409 (code 4002): 이미 사용 중인 닉네임
                     """
@@ -77,7 +80,7 @@ public class AuthController {
             summary = "로그인",
             description = """
                     이메일과 비밀번호로 로그인합니다.
-                    성공 시 accessToken과 refreshToken을 반환합니다.
+                    성공 시 `accessToken`, `refreshToken`, `userId`, `nickname`, `role`을 반환합니다.
                     이후 API 호출 시 Authorization 헤더에 `Bearer {accessToken}` 형식으로 전달하세요.
 
                     **에러 응답**
@@ -93,7 +96,7 @@ public class AuthController {
             summary = "로그아웃",
             description = """
                     로그아웃합니다.
-                    refreshToken을 body에 담아 보내면 해당 토큰만 삭제하고, 없으면 해당 유저의 모든 토큰을 삭제합니다.
+                    `refreshToken`을 body에 담아 보내면 해당 토큰만 삭제하고, 없으면 해당 유저의 모든 토큰을 삭제합니다.
 
                     **에러 응답**
                     - 401: 인증 토큰 없음 또는 만료
@@ -111,8 +114,8 @@ public class AuthController {
     @Operation(
             summary = "토큰 재발급",
             description = """
-                    refreshToken으로 새로운 accessToken과 refreshToken을 발급합니다.
-                    accessToken 만료 시 사용하세요.
+                    `refreshToken`으로 새로운 `accessToken`과 `refreshToken`을 발급합니다.
+                    `accessToken` 만료 시 사용하세요.
 
                     **에러 응답**
                     - 401 (code 4004): 유효하지 않은 refreshToken
