@@ -58,7 +58,7 @@ public class AnalysisController {
             @PathVariable Long analysisId) {
         AnalysisResponse analysis = analysisService.getAnalysis(analysisId);
         return ResponseEntity.ok(ApiResponse.ok(Map.of(
-                "analysisId", analysis.getId(),
+                "analysisId", analysis.getAnalysisId(),
                 "videoId", analysis.getVideoId(),
                 "status", analysis.getStatus()
         )));

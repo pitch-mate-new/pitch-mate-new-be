@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @Builder
 public class AnalysisResponse {
 
-    private Long id;
+    private Long analysisId;
     private Long videoId;
     private String status;
 
@@ -27,7 +27,7 @@ public class AnalysisResponse {
 
     public static AnalysisResponse from(Analysis analysis) {
         return AnalysisResponse.builder()
-                .id(analysis.getId())
+                .analysisId(analysis.getId())
                 .videoId(analysis.getVideo().getId())
                 .status(analysis.getStatus().name())
                 .speechRateWpm(analysis.getSpeechRateWpm())

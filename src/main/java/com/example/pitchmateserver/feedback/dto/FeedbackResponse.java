@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @Builder
 public class FeedbackResponse {
 
-    private Long id;
+    private Long feedbackId;
     private Long authorId;
     private String authorNickname;
     private Long rubricId;
@@ -24,7 +24,7 @@ public class FeedbackResponse {
 
     public static FeedbackResponse from(Feedback feedback) {
         return FeedbackResponse.builder()
-                .id(feedback.getId())
+                .feedbackId(feedback.getId())
                 .authorId(feedback.getAuthor() != null ? feedback.getAuthor().getId() : null)
                 .authorNickname(feedback.getAuthor() != null ? feedback.getAuthor().getNickname() : "AI")
                 .rubricId(feedback.getRubric() != null ? feedback.getRubric().getId() : null)

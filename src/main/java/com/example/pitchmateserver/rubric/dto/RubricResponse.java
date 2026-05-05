@@ -8,7 +8,7 @@ import lombok.Getter;
 @Builder
 public class RubricResponse {
 
-    private Long id;
+    private Long rubricId;
     private String title;
     private String description;
     private String category;
@@ -17,7 +17,7 @@ public class RubricResponse {
 
     public static RubricResponse from(Rubric rubric) {
         return RubricResponse.builder()
-                .id(rubric.getId())
+                .rubricId(rubric.getId())
                 .title(rubric.getTitle())
                 .description(rubric.getDescription())
                 .category(rubric.getCategory())
