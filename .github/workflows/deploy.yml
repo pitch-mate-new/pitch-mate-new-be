@@ -37,32 +37,30 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          # PEM 키 설정
           echo "$EC2_SSH_KEY" > pitchmate-key.pem
           chmod 400 pitchmate-key.pem
 
-          # JAR 파일 EC2로 전송
           JAR_FILE=$(ls build/libs/*.jar | grep -v plain)
           scp -i pitchmate-key.pem -o StrictHostKeyChecking=no \
             $JAR_FILE ubuntu@$EC2_HOST:/home/ubuntu/app/pitchmate-server.jar
 
-          # EC2에서 서비스 재시작
-          ssh -i pitchmate-key.pem -o StrictHostKeyChecking=no ubuntu@$EC2_HOST "
-            sudo systemctl stop pitchmate || true
-            sudo tee /etc/pitchmate.env > /dev/null << 'ENVEOF'
-GEMINI_API_KEY=${GEMINI_API_KEY}
-SUPABASE_URL=${SUPABASE_URL}
-SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-SPRING_DATASOURCE_URL=jdbc:postgresql://aws-1-ap-northeast-2.pooler.supabase.com:6543/postgres?sslmode=require
-SPRING_DATASOURCE_USERNAME=postgres.gemeljbpyavcutbzcujj
-SPRING_DATASOURCE_PASSWORD=WooJun1011200457
-JWT_SECRET=pitchmateSecretKeyForJwtTokenGenerationAndValidation2024SecureKey
-JWT_ACCESS_TOKEN_EXPIRATION=1800000
-JWT_REFRESH_TOKEN_EXPIRATION=604800000
-CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173,https://pitch-mate-capstone.vercel.app
-SPRING_JPA_HIBERNATE_DDL_AUTO=update
-SERVER_PORT=8080
-ENVEOF
-            sudo systemctl start pitchmate
-            sudo systemctl status pitchmate --no-pager
-          "
+          cat > env_file << EOF
+          GEMINI_API_KEY=$GEMINI_API_KEY
+          SUPABASE_URL=$SUPABASE_URL
+          SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY
+          SPRING_DATASOURCE_URL=jdbc:postgresql://aws-1-ap-northeast-2.pooler.supabase.com:6543/postgres?sslmode=require
+          SPRING_DATASOURCE_USERNAME=postgres.gemeljbpyavcutbzcujj
+          SPRING_DATASOURCE_PASSWORD=WooJun1011200457
+          JWT_SECRET=pitchmateSecretKeyForJwtTokenGenerationAndValidation2024SecureKey
+          JWT_ACCESS_TOKEN_EXPIRATION=1800000
+          JWT_REFRESH_TOKEN_EXPIRATION=604800000
+          CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173,https://pitch-mate-capstone.vercel.app
+          SPRING_JPA_HIBERNATE_DDL_AUTO=update
+          SERVER_PORT=8080
+          EOF
+
+          scp -i pitchmate-key.pem -o StrictHostKeyChecking=no \
+            env_file ubuntu@$EC2_HOST:/home/ubuntu/env_file
+
+          ssh -i pitchmate-key.pem -o StrictHostKeyChecking=no ubuntu@$EC2_HOST \
+            "sudo mv /home/ubuntu/env_file /etc/pitchmate.env && sudo systemctl restart pitchmate"
