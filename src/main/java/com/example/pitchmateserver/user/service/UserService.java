@@ -53,16 +53,19 @@ public class UserService {
     }
 
     @Transactional
-    public void updateProfile(Long userId, String nickname, String profileImageUrl) {
+    public void updateProfile(Long userId, String nickname, String profileImageUrl, String bio) {
         User user = findUser(userId);
         if (nickname != null) {
-            if (userRepository.existsByNickname(nickname)) {
+            if (!nickname.equals(user.getNickname()) && userRepository.existsByNickname(nickname)) {
                 throw new BusinessException(ErrorCode.DUPLICATE_NICKNAME);
             }
             user.updateNickname(nickname);
         }
         if (profileImageUrl != null) {
             user.updateProfileImageUrl(profileImageUrl);
+        }
+        if (bio != null) {
+            user.updateBio(bio);
         }
     }
 

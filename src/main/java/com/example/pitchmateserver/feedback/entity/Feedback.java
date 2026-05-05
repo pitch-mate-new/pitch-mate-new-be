@@ -1,5 +1,6 @@
 package com.example.pitchmateserver.feedback.entity;
 
+import com.example.pitchmateserver.rubric.entity.Rubric;
 import com.example.pitchmateserver.user.entity.User;
 import com.example.pitchmateserver.video.entity.Video;
 import jakarta.persistence.*;
@@ -29,11 +30,17 @@ public class Feedback {
     @JoinColumn(name = "author_id")
     private User author;
 
-    // 구간 시작 시간 (초)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "rubric_id")
+    private Rubric rubric;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 10)
+    private Rating rating;
+
     @Column(name = "start_time_seconds")
     private Double startTimeSeconds;
 
-    // 구간 종료 시간 (초)
     @Column(name = "end_time_seconds")
     private Double endTimeSeconds;
 
@@ -43,6 +50,10 @@ public class Feedback {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private FeedbackType type;
+
+    public enum Rating {
+        GOOD, NORMAL, BAD
+    }
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

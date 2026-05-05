@@ -3,9 +3,14 @@ package com.example.pitchmateserver.feedback.service;
 import com.example.pitchmateserver.ai.service.GeminiService;
 import com.example.pitchmateserver.common.exception.BusinessException;
 import com.example.pitchmateserver.common.exception.ErrorCode;
+import com.example.pitchmateserver.feedback.dto.FeedbackRequest;
 import com.example.pitchmateserver.feedback.dto.FeedbackResponse;
 import com.example.pitchmateserver.feedback.entity.Feedback;
 import com.example.pitchmateserver.feedback.repository.FeedbackRepository;
+import com.example.pitchmateserver.rubric.entity.Rubric;
+import com.example.pitchmateserver.rubric.repository.RubricRepository;
+import com.example.pitchmateserver.user.entity.User;
+import com.example.pitchmateserver.user.service.UserService;
 import com.example.pitchmateserver.video.entity.Video;
 import com.example.pitchmateserver.video.service.VideoService;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +28,37 @@ public class FeedbackService {
 
     private final FeedbackRepository feedbackRepository;
     private final VideoService videoService;
+    private final UserService userService;
+    private final RubricRepository rubricRepository;
     private final GeminiService geminiService;
+
+    @Transactional
+    public FeedbackResponse createMentorFeedback(Long mentorId, Long videoId, FeedbackRequest request) {
+        User mentor = userService.findUser(mentorId);
+        Video video = videoService.findVideo(videoId);
+
+        Rubric rubric = request.getRubricId() != null
+                ? rubricRepository.findById(request.getRubricId())
+                    .orElseThrow(() -> new BusinessException(ErrorCode.RUBRIC_NOT_FOUND))
+                : null;
+
+        Feedback.Rating rating = request.getRating() != null
+                ? Feedback.Rating.valueOf(request.getRating())
+                : null;
+
+        Feedback feedback = feedbackRepository.save(Feedback.builder()
+                .video(video)
+                .author(mentor)
+                .rubric(rubric)
+                .rating(rating)
+                .startTimeSeconds(request.getStartTimeSeconds())
+                .endTimeSeconds(request.getEndTimeSeconds())
+                .content(request.getContent())
+                .type(Feedback.FeedbackType.MANUAL)
+                .build());
+
+        return FeedbackResponse.from(feedback);
+    }
 
     /**
      * API 직접 호출 - Gemini에 영상 업로드 후 피드백 생성

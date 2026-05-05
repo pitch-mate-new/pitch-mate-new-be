@@ -69,7 +69,7 @@ public class UserController {
     public ResponseEntity<ApiResponse<Void>> updateProfile(
             @CurrentUser Long userId,
             @Valid @RequestBody UpdateProfileRequest request) {
-        userService.updateProfile(userId, request.getNickname(), request.getProfileImage());
+        userService.updateProfile(userId, request.getNickname(), request.getProfileImage(), request.getBio());
         return ResponseEntity.ok(ApiResponse.ok(null, "프로필 수정 완료"));
     }
 

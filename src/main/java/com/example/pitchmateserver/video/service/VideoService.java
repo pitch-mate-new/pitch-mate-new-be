@@ -4,6 +4,8 @@ import com.example.pitchmateserver.ai.service.AnalysisService;
 import com.example.pitchmateserver.common.exception.BusinessException;
 import com.example.pitchmateserver.common.exception.ErrorCode;
 import com.example.pitchmateserver.common.storage.SupabaseStorageService;
+import com.example.pitchmateserver.connection.entity.MentorConnection;
+import com.example.pitchmateserver.connection.repository.ConnectionRepository;
 import com.example.pitchmateserver.session.service.SessionService;
 import com.example.pitchmateserver.user.entity.User;
 import com.example.pitchmateserver.user.service.UserService;
@@ -27,25 +29,26 @@ public class VideoService {
     private final SessionService sessionService;
     private final AnalysisService analysisService;
     private final SupabaseStorageService storageService;
+    private final ConnectionRepository connectionRepository;
 
     public VideoService(VideoRepository videoRepository,
                         UserService userService,
                         @Lazy SessionService sessionService,
                         @Lazy AnalysisService analysisService,
-                        SupabaseStorageService storageService) {
+                        SupabaseStorageService storageService,
+                        ConnectionRepository connectionRepository) {
         this.videoRepository = videoRepository;
         this.userService = userService;
         this.sessionService = sessionService;
         this.analysisService = analysisService;
         this.storageService = storageService;
+        this.connectionRepository = connectionRepository;
     }
 
     @Transactional
     public VideoResponse uploadVideo(Long userId, MultipartFile file, String title, String description,
-                                     Video.VideoType videoType
-                                     // TODO: 연습 유형 - 추후 활성화
-                                     // , Video.PracticeType practiceType
-    ) {
+                                     Video.VideoType videoType, Video.PracticeType practiceType,
+                                     Long requestedMentorId) {
         User user = userService.findUser(userId);
         String videoUrl = storageService.uploadFile(file);
 
@@ -53,14 +56,22 @@ public class VideoService {
                 ? "녹화 영상 " + System.currentTimeMillis()
                 : file.getOriginalFilename();
 
+        User requestedMentor = null;
+        if (requestedMentorId != null) {
+            requestedMentor = userService.findUser(requestedMentorId);
+            if (!connectionRepository.existsByMenteeIdAndMentorIdAndStatus(userId, requestedMentorId, MentorConnection.ConnectionStatus.ACCEPTED)) {
+                throw new BusinessException(ErrorCode.CONNECTION_REQUIRED);
+            }
+        }
+
         Video video = videoRepository.save(Video.builder()
                 .user(user)
                 .title(title != null ? title : defaultTitle)
                 .description(description)
                 .videoUrl(videoUrl)
                 .type(videoType)
-                // TODO: 연습 유형 - 추후 활성화
-                // .practiceType(practiceType)
+                .practiceType(practiceType)
+                .requestedMentor(requestedMentor)
                 .build());
 
         sessionService.createSession(user, video);
@@ -73,6 +84,13 @@ public class VideoService {
 
     public List<VideoResponse> getMyVideos(Long userId) {
         return videoRepository.findByUserIdOrderByCreatedAtDesc(userId)
+                .stream()
+                .map(VideoResponse::from)
+                .toList();
+    }
+
+    public List<VideoResponse> getRequestedVideos(Long mentorId) {
+        return videoRepository.findByRequestedMentorIdOrderByCreatedAtDesc(mentorId)
                 .stream()
                 .map(VideoResponse::from)
                 .toList();

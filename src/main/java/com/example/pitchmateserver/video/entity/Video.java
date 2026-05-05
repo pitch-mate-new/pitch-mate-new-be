@@ -39,10 +39,13 @@ public class Video {
     @Column(nullable = false)
     private VideoType type;
 
-    // TODO: 연습 유형 (발표/면접/스피치) - 추후 활성화
-    // @Enumerated(EnumType.STRING)
-    // @Column(name = "practice_type", nullable = false)
-    // private PracticeType practiceType;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "practice_type")
+    private PracticeType practiceType;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "requested_mentor_id")
+    private User requestedMentor;
 
     @Column(name = "duration_seconds")
     private Integer durationSeconds;
@@ -64,8 +67,7 @@ public class Video {
         UPLOAD, RECORD
     }
 
-    // TODO: 연습 유형 - 추후 활성화
-    // public enum PracticeType {
-    //     PRESENTATION, INTERVIEW, SPEECH
-    // }
+    public enum PracticeType {
+        PRESENTATION, INTERVIEW, SPEECH
+    }
 }

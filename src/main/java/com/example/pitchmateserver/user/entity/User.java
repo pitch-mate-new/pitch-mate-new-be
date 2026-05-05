@@ -34,6 +34,9 @@ public class User {
     @Column(nullable = false, length = 20)
     private String role;
 
+    @Column(length = 200)
+    private String bio;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -48,5 +51,9 @@ public class User {
 
     public void updateProfileImageUrl(String profileImageUrl) {
         this.profileImageUrl = profileImageUrl;
+    }
+
+    public void updateBio(String bio) {
+        this.bio = bio;
     }
 }

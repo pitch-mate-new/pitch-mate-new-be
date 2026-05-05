@@ -6,6 +6,8 @@ import lombok.Getter;
 @Getter
 public class FeedbackRequest {
 
+    private Long rubricId;
+    private String rating; // GOOD, NORMAL, BAD
     private Double startTimeSeconds;
     private Double endTimeSeconds;
 

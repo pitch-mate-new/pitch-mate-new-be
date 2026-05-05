@@ -3,12 +3,15 @@ package com.example.pitchmateserver.evaluation.service;
 import com.example.pitchmateserver.ai.service.GeminiService;
 import com.example.pitchmateserver.common.exception.BusinessException;
 import com.example.pitchmateserver.common.exception.ErrorCode;
+import com.example.pitchmateserver.evaluation.dto.EvaluationRequest;
 import com.example.pitchmateserver.evaluation.dto.EvaluationResponse;
 import com.example.pitchmateserver.evaluation.entity.Evaluation;
 import com.example.pitchmateserver.evaluation.entity.EvaluationScore;
 import com.example.pitchmateserver.evaluation.repository.EvaluationRepository;
 import com.example.pitchmateserver.rubric.entity.Rubric;
 import com.example.pitchmateserver.rubric.repository.RubricRepository;
+import com.example.pitchmateserver.user.entity.User;
+import com.example.pitchmateserver.user.service.UserService;
 import com.example.pitchmateserver.video.entity.Video;
 import com.example.pitchmateserver.video.service.VideoService;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +31,43 @@ public class EvaluationService {
     private final EvaluationRepository evaluationRepository;
     private final RubricRepository rubricRepository;
     private final VideoService videoService;
+    private final UserService userService;
     private final GeminiService geminiService;
+
+    @Transactional
+    public EvaluationResponse createMentorEvaluation(Long mentorId, Long videoId, EvaluationRequest request) {
+        User mentor = userService.findUser(mentorId);
+        Video video = videoService.findVideo(videoId);
+
+        Evaluation evaluation = evaluationRepository.save(Evaluation.builder()
+                .video(video)
+                .evaluator(mentor)
+                .type(Evaluation.EvaluationType.MANUAL)
+                .comment(request.getComment())
+                .totalScore(0)
+                .maxTotalScore(0)
+                .build());
+
+        List<EvaluationScore> scores = request.getScores().stream()
+                .map(sr -> {
+                    Rubric rubric = rubricRepository.findById(sr.getRubricId())
+                            .orElseThrow(() -> new BusinessException(ErrorCode.RUBRIC_NOT_FOUND));
+                    return EvaluationScore.builder()
+                            .evaluation(evaluation)
+                            .rubric(rubric)
+                            .score(sr.getScore())
+                            .comment(sr.getComment())
+                            .build();
+                })
+                .toList();
+
+        evaluation.getScores().addAll(scores);
+        int total = scores.stream().mapToInt(EvaluationScore::getScore).sum();
+        int maxTotal = scores.stream().mapToInt(s -> s.getRubric().getMaxScore()).sum();
+        evaluation.updateTotals(total, maxTotal);
+
+        return EvaluationResponse.from(evaluation);
+    }
 
     /**
      * API 직접 호출 - 이미 평가가 있으면 기존 반환, 없으면 Gemini 업로드 후 생성

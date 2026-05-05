@@ -47,11 +47,13 @@ public class VideoController {
             @Parameter(description = "업로드할 영상 파일") @RequestParam("file") MultipartFile file,
             @Parameter(description = "영상 제목 (미입력 시 파일명 또는 '녹화 영상'으로 자동 설정)") @RequestParam(required = false) String title,
             @Parameter(description = "영상 설명") @RequestParam(required = false) String description,
-            @Parameter(description = "영상 유형: UPLOAD 또는 RECORD") @RequestParam Video.VideoType videoType
+            @Parameter(description = "영상 유형: UPLOAD 또는 RECORD") @RequestParam Video.VideoType videoType,
+            @Parameter(description = "연습 유형: PRESENTATION, INTERVIEW, SPEECH") @RequestParam(required = false) Video.PracticeType practiceType,
+            @Parameter(description = "피드백 요청할 멘토 ID (연결된 멘토만 가능)") @RequestParam(required = false) Long requestedMentorId
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.of(SuccessCode.SUCCESS, HttpStatus.CREATED,
-                        videoService.uploadVideo(userId, file, title, description, videoType)));
+                        videoService.uploadVideo(userId, file, title, description, videoType, practiceType, requestedMentorId)));
     }
 
     @Operation(
@@ -100,6 +102,20 @@ public class VideoController {
             @PathVariable Long videoId,
             @RequestBody VideoUpdateRequest request) {
         return ResponseEntity.ok(ApiResponse.ok(videoService.updateVideo(userId, videoId, request)));
+    }
+
+    @Operation(
+            summary = "멘토에게 요청된 영상 목록 조회",
+            description = """
+                    멘토로 지정된 영상 목록을 최신순으로 반환합니다. 멘토 계정에서 사용합니다.
+
+                    **에러 응답**
+                    - 401: 인증 토큰 없음 또는 만료
+                    """
+    )
+    @GetMapping("/requested")
+    public ResponseEntity<ApiResponse<List<VideoResponse>>> getRequestedVideos(@CurrentUser Long userId) {
+        return ResponseEntity.ok(ApiResponse.ok(videoService.getRequestedVideos(userId)));
     }
 
     @Operation(

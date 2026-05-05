@@ -49,11 +49,12 @@ public class AuthService {
             throw new BusinessException(ErrorCode.DUPLICATE_NICKNAME);
         }
 
+        String role = "MENTOR".equalsIgnoreCase(request.getRole()) ? "MENTOR" : "MENTEE";
         User user = User.builder()
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .nickname(request.getNickname())
-                .role("MENTEE")
+                .role(role)
                 .build();
         return SignupResponse.from(userRepository.save(user));
     }

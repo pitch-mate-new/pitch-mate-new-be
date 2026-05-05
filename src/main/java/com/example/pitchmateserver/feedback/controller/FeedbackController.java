@@ -3,10 +3,12 @@ package com.example.pitchmateserver.feedback.controller;
 import com.example.pitchmateserver.common.response.ApiResponse;
 import com.example.pitchmateserver.common.response.SuccessCode;
 import com.example.pitchmateserver.common.security.CurrentUser;
+import com.example.pitchmateserver.feedback.dto.FeedbackRequest;
 import com.example.pitchmateserver.feedback.dto.FeedbackResponse;
 import com.example.pitchmateserver.feedback.service.FeedbackService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -38,6 +40,27 @@ public class FeedbackController {
             @PathVariable Long videoId) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.of(SuccessCode.SUCCESS, HttpStatus.CREATED, feedbackService.generateAiFeedbacks(videoId)));
+    }
+
+    @Operation(
+            summary = "멘토 구간 피드백 작성",
+            description = """
+                    멘토가 멘티의 영상에 구간 피드백을 작성합니다.
+
+                    **에러 응답**
+                    - 401: 인증 토큰 없음 또는 만료
+                    - 404 (code 4008): 영상을 찾을 수 없음
+                    - 404 (code 4014): 루브릭을 찾을 수 없음
+                    """
+    )
+    @PostMapping("/api/videos/{videoId}/feedbacks")
+    public ResponseEntity<ApiResponse<FeedbackResponse>> createMentorFeedback(
+            @CurrentUser Long userId,
+            @PathVariable Long videoId,
+            @Valid @RequestBody FeedbackRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.of(SuccessCode.SUCCESS, HttpStatus.CREATED,
+                        feedbackService.createMentorFeedback(userId, videoId, request)));
     }
 
     @Operation(

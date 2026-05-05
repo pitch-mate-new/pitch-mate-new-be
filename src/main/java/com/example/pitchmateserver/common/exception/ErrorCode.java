@@ -40,6 +40,15 @@ public enum ErrorCode {
     // File (400x)
     FILE_UPLOAD_FAILED(4016, HttpStatus.INTERNAL_SERVER_ERROR, "파일 업로드에 실패했습니다."),
 
+    // Connection (400x)
+    CONNECTION_ALREADY_EXISTS(4017, HttpStatus.CONFLICT, "이미 신청하거나 연결된 멘토입니다."),
+    CONNECTION_NOT_FOUND(4018, HttpStatus.NOT_FOUND, "연결 정보를 찾을 수 없습니다."),
+    CONNECTION_ACCESS_DENIED(4019, HttpStatus.FORBIDDEN, "해당 연결에 접근 권한이 없습니다."),
+    MENTOR_LIMIT_EXCEEDED(4020, HttpStatus.BAD_REQUEST, "멘티는 최대 5명의 멘토에게 신청할 수 있습니다."),
+    MENTEE_LIMIT_EXCEEDED(4021, HttpStatus.BAD_REQUEST, "멘토는 최대 10명의 멘티와 연결할 수 있습니다."),
+    NOT_MENTOR(4022, HttpStatus.BAD_REQUEST, "멘토 역할의 사용자만 가능합니다."),
+    CONNECTION_REQUIRED(4023, HttpStatus.BAD_REQUEST, "연결된 멘토에게만 피드백을 요청할 수 있습니다."),
+
     // Validation (400x)
     VALIDATION_ERROR(4000, HttpStatus.BAD_REQUEST, "입력값이 올바르지 않습니다."),
 

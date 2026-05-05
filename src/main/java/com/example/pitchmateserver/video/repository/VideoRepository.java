@@ -12,6 +12,8 @@ public interface VideoRepository extends JpaRepository<Video, Long> {
     List<Video> findTop4ByUserIdOrderByCreatedAtDesc(Long userId);
     long countByUserId(Long userId);
 
+    List<Video> findByRequestedMentorIdOrderByCreatedAtDesc(Long mentorId);
+
     @Query("SELECT AVG(e.totalScore) FROM Evaluation e WHERE e.video.user.id = :userId AND e.totalScore IS NOT NULL")
     Double findAverageScoreByUserId(@Param("userId") Long userId);
 }
