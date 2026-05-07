@@ -34,8 +34,6 @@ jobs:
           EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           echo "$EC2_SSH_KEY" > pitchmate-key.pem
           chmod 400 pitchmate-key.pem
@@ -46,8 +44,7 @@ jobs:
 
           cat > env_file << EOF
           GEMINI_API_KEY=$GEMINI_API_KEY
-          SUPABASE_URL=$SUPABASE_URL
-          SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY
+          AWS_S3_BUCKET=pitchmate-videos-kr
           SPRING_DATASOURCE_URL=jdbc:postgresql://pitchmate-db.cfegkq4qyt35.ap-northeast-2.rds.amazonaws.com:5432/pitchmate
           SPRING_DATASOURCE_USERNAME=pitchmate
           SPRING_DATASOURCE_PASSWORD=WooJun1011!

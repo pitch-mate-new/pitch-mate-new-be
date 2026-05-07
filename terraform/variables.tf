@@ -19,3 +19,26 @@ variable "my_ip" {
   description = "SSH 허용할 내 IP (예: 123.456.789.0/32)"
   type        = string
 }
+
+variable "db_name" {
+  description = "RDS 데이터베이스 이름"
+  type        = string
+  default     = "pitchmate"
+}
+
+variable "db_username" {
+  description = "RDS 마스터 사용자명"
+  type        = string
+  default     = "pitchmate"
+}
+
+variable "db_password" {
+  description = "RDS 마스터 비밀번호"
+  type        = string
+  sensitive   = true
+}
+
+variable "s3_bucket_name" {
+  description = "S3 버킷 이름 (전 세계 고유해야 함)"
+  type        = string
+}

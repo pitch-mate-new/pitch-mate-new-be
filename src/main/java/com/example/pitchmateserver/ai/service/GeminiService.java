@@ -1,6 +1,6 @@
 package com.example.pitchmateserver.ai.service;
 
-import com.example.pitchmateserver.common.storage.SupabaseStorageService;
+import com.example.pitchmateserver.common.storage.S3StorageService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -27,9 +27,9 @@ public class GeminiService {
 
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
-    private final SupabaseStorageService storageService;
+    private final S3StorageService storageService;
 
-    public GeminiService(ObjectMapper objectMapper, SupabaseStorageService storageService) {
+    public GeminiService(ObjectMapper objectMapper, S3StorageService storageService) {
         this.restClient = RestClient.builder()
                 .baseUrl(GEMINI_BASE_URL)
                 .build();

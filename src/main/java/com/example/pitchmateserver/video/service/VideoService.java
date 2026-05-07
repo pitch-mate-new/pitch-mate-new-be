@@ -3,7 +3,7 @@ package com.example.pitchmateserver.video.service;
 import com.example.pitchmateserver.ai.service.AnalysisService;
 import com.example.pitchmateserver.common.exception.BusinessException;
 import com.example.pitchmateserver.common.exception.ErrorCode;
-import com.example.pitchmateserver.common.storage.SupabaseStorageService;
+import com.example.pitchmateserver.common.storage.S3StorageService;
 import com.example.pitchmateserver.connection.entity.MentorConnection;
 import com.example.pitchmateserver.connection.repository.ConnectionRepository;
 import com.example.pitchmateserver.session.service.SessionService;
@@ -28,14 +28,14 @@ public class VideoService {
     private final UserService userService;
     private final SessionService sessionService;
     private final AnalysisService analysisService;
-    private final SupabaseStorageService storageService;
+    private final S3StorageService storageService;
     private final ConnectionRepository connectionRepository;
 
     public VideoService(VideoRepository videoRepository,
                         UserService userService,
                         @Lazy SessionService sessionService,
                         @Lazy AnalysisService analysisService,
-                        SupabaseStorageService storageService,
+                        S3StorageService storageService,
                         ConnectionRepository connectionRepository) {
         this.videoRepository = videoRepository;
         this.userService = userService;
