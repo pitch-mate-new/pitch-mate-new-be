@@ -39,10 +39,10 @@ public class GeminiService {
 
     /**
      * 영상 파일을 Gemini File API에 업로드하고 fileUri 반환
-     * videoUrl: Supabase Storage 공개 URL
+     * videoUrl: S3 공개 URL
      */
     public String uploadVideoFile(String videoUrl) throws IOException {
-        // Supabase Storage에서 영상 파일 다운로드
+        // S3에서 영상 파일 다운로드
         byte[] fileBytes = storageService.downloadFile(videoUrl);
         long fileSize = fileBytes.length;
         String fileName = videoUrl.substring(videoUrl.lastIndexOf('/') + 1);

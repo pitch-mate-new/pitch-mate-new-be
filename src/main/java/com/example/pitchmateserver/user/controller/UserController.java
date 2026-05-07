@@ -60,7 +60,7 @@ public class UserController {
             summary = "프로필 수정",
             description = """
                     닉네임, 프로필 이미지 URL, 자기소개(bio)를 수정합니다. 변경할 필드만 보내면 됩니다.
-                    `profileImage`는 Supabase Storage에 이미지 업로드 후 얻은 URL을 전달하세요.
+                    `profileImage`는 이미지 URL을 전달하세요.
 
                     **에러 응답**
                     - 401: 인증 토큰 없음 또는 만료
