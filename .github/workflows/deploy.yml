@@ -48,9 +48,9 @@ jobs:
           GEMINI_API_KEY=$GEMINI_API_KEY
           SUPABASE_URL=$SUPABASE_URL
           SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY
-          SPRING_DATASOURCE_URL=jdbc:postgresql://aws-1-ap-northeast-2.pooler.supabase.com:6543/postgres?sslmode=require
-          SPRING_DATASOURCE_USERNAME=postgres.gemeljbpyavcutbzcujj
-          SPRING_DATASOURCE_PASSWORD=WooJun1011200457
+          SPRING_DATASOURCE_URL=jdbc:postgresql://pitchmate-db.cfegkq4qyt35.ap-northeast-2.rds.amazonaws.com:5432/pitchmate
+          SPRING_DATASOURCE_USERNAME=pitchmate
+          SPRING_DATASOURCE_PASSWORD=WooJun1011!
           JWT_SECRET=pitchmateSecretKeyForJwtTokenGenerationAndValidation2024SecureKey
           JWT_ACCESS_TOKEN_EXPIRATION=1800000
           JWT_REFRESH_TOKEN_EXPIRATION=604800000
