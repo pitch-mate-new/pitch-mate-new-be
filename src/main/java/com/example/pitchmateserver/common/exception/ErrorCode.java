@@ -39,6 +39,7 @@ public enum ErrorCode {
 
     // File (400x)
     FILE_UPLOAD_FAILED(4016, HttpStatus.INTERNAL_SERVER_ERROR, "파일 업로드에 실패했습니다."),
+    INVALID_FILE_FORMAT(4024, HttpStatus.BAD_REQUEST, "지원하지 않는 파일 형식입니다. MP4, MOV, AVI, WEBM만 허용됩니다."),
 
     // Connection (400x)
     CONNECTION_ALREADY_EXISTS(4017, HttpStatus.CONFLICT, "이미 신청하거나 연결된 멘토입니다."),

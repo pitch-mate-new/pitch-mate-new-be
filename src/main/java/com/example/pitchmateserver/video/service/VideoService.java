@@ -6,7 +6,6 @@ import com.example.pitchmateserver.common.exception.ErrorCode;
 import com.example.pitchmateserver.common.storage.S3StorageService;
 import com.example.pitchmateserver.connection.entity.MentorConnection;
 import com.example.pitchmateserver.connection.repository.ConnectionRepository;
-import com.example.pitchmateserver.session.service.SessionService;
 import com.example.pitchmateserver.user.entity.User;
 import com.example.pitchmateserver.user.service.UserService;
 import com.example.pitchmateserver.video.dto.VideoResponse;
@@ -19,27 +18,27 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Set;
 
 @Service
 @Transactional(readOnly = true)
 public class VideoService {
 
+    private static final Set<String> ALLOWED_EXTENSIONS = Set.of("mp4", "mov", "avi", "webm");
+
     private final VideoRepository videoRepository;
     private final UserService userService;
-    private final SessionService sessionService;
     private final AnalysisService analysisService;
     private final S3StorageService storageService;
     private final ConnectionRepository connectionRepository;
 
     public VideoService(VideoRepository videoRepository,
                         UserService userService,
-                        @Lazy SessionService sessionService,
                         @Lazy AnalysisService analysisService,
                         S3StorageService storageService,
                         ConnectionRepository connectionRepository) {
         this.videoRepository = videoRepository;
         this.userService = userService;
-        this.sessionService = sessionService;
         this.analysisService = analysisService;
         this.storageService = storageService;
         this.connectionRepository = connectionRepository;
@@ -49,6 +48,7 @@ public class VideoService {
     public VideoResponse uploadVideo(Long userId, MultipartFile file, String title, String description,
                                      Video.VideoType videoType, Video.PracticeType practiceType,
                                      Long requestedMentorId) {
+        validateFileFormat(file);
         User user = userService.findUser(userId);
         String videoUrl = storageService.uploadFile(file);
 
@@ -74,9 +74,8 @@ public class VideoService {
                 .requestedMentor(requestedMentor)
                 .build());
 
-        sessionService.createSession(user, video);
-
         // 영상 업로드 즉시 AI 분석 + 평가 + 피드백 자동 시작 (비동기, Gemini 업로드 1회)
+        // 히스토리(세션) 생성은 AI 분석 완료 후에 수행됨 (SRS 3.6.1)
         analysisService.requestAnalysis(video.getId());
 
         return VideoResponse.from(video);
@@ -124,6 +123,17 @@ public class VideoService {
             throw new BusinessException(ErrorCode.VIDEO_ACCESS_DENIED);
         }
         return video;
+    }
+
+    private void validateFileFormat(MultipartFile file) {
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename == null || !originalFilename.contains(".")) {
+            throw new BusinessException(ErrorCode.INVALID_FILE_FORMAT);
+        }
+        String ext = originalFilename.substring(originalFilename.lastIndexOf('.') + 1).toLowerCase();
+        if (!ALLOWED_EXTENSIONS.contains(ext)) {
+            throw new BusinessException(ErrorCode.INVALID_FILE_FORMAT);
+        }
     }
 
 }

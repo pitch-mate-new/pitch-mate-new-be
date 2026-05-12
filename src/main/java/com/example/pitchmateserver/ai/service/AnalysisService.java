@@ -7,17 +7,18 @@ import com.example.pitchmateserver.common.exception.BusinessException;
 import com.example.pitchmateserver.common.exception.ErrorCode;
 import com.example.pitchmateserver.evaluation.service.EvaluationService;
 import com.example.pitchmateserver.feedback.service.FeedbackService;
+import com.example.pitchmateserver.session.service.SessionService;
 import com.example.pitchmateserver.video.entity.Video;
 import com.example.pitchmateserver.video.service.VideoService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class AnalysisService {
 
@@ -26,6 +27,21 @@ public class AnalysisService {
     private final GeminiService geminiService;
     private final EvaluationService evaluationService;
     private final FeedbackService feedbackService;
+    private final SessionService sessionService;
+
+    public AnalysisService(AnalysisRepository analysisRepository,
+                           VideoService videoService,
+                           GeminiService geminiService,
+                           EvaluationService evaluationService,
+                           FeedbackService feedbackService,
+                           @Lazy SessionService sessionService) {
+        this.analysisRepository = analysisRepository;
+        this.videoService = videoService;
+        this.geminiService = geminiService;
+        this.evaluationService = evaluationService;
+        this.feedbackService = feedbackService;
+        this.sessionService = sessionService;
+    }
 
     @Transactional
     public AnalysisResponse requestAnalysis(Long videoId) {
@@ -75,6 +91,15 @@ public class AnalysisService {
             );
             analysisRepository.save(analysis);
             log.info("분석 완료: analysisId={}", analysisId);
+
+            // AI 분석 완료 후 히스토리(세션) 생성 (SRS 3.6.1)
+            try {
+                Video completedVideo = videoService.findVideo(videoId);
+                sessionService.createSession(completedVideo.getUser(), completedVideo);
+                log.info("세션 생성 완료: videoId={}", videoId);
+            } catch (Exception ex) {
+                log.error("세션 생성 실패: videoId={}, error={}", videoId, ex.getMessage());
+            }
 
         } catch (Exception e) {
             log.error("분석 실패: analysisId={}, error={}", analysisId, e.getMessage());

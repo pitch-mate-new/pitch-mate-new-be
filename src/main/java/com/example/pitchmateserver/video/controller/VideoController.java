@@ -45,6 +45,7 @@ public class VideoController {
 
                     **에러 응답**
                     - 400 (code 4000): 파일 없음 / videoType 미입력
+                    - 400 (code 4024): 지원하지 않는 파일 형식 (MP4, MOV, AVI, WEBM만 허용)
                     - 400 (code 4023): 연결되지 않은 멘토에게 피드백 요청 시도
                     - 401: 인증 토큰 없음 또는 만료
                     - 404 (code 4008): requestedMentorId에 해당하는 사용자 없음
