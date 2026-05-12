@@ -1,11 +1,14 @@
 package com.example.pitchmateserver.rubric;
 
+import com.example.pitchmateserver.evaluation.repository.EvaluationRepository;
+import com.example.pitchmateserver.feedback.repository.FeedbackRepository;
 import com.example.pitchmateserver.rubric.entity.Rubric;
 import com.example.pitchmateserver.rubric.repository.RubricRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -14,12 +17,18 @@ import java.util.List;
 public class DataInitializer implements ApplicationRunner {
 
     private final RubricRepository rubricRepository;
+    private final EvaluationRepository evaluationRepository;
+    private final FeedbackRepository feedbackRepository;
 
     @Override
+    @Transactional
     public void run(ApplicationArguments args) {
         if (rubricRepository.count() == 20) return;
 
-        // 기존 루브릭 전체 삭제 후 재등록 (항목 변경 시)
+        // 루브릭을 참조하는 데이터 먼저 삭제 (FK 제약 해제)
+        // evaluation_scores는 Evaluation CASCADE ALL로 함께 삭제됨
+        evaluationRepository.deleteAll();
+        feedbackRepository.deleteAll();
         rubricRepository.deleteAll();
 
         rubricRepository.saveAll(List.of(
