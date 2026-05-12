@@ -18,7 +18,7 @@ public class UserResponse {
     private String email;
     private String nickname;
     private String role;
-    private String bio;
+    private String intro;
     private String profileImage;
     private LocalDateTime createdAt;
     private long totalVideos;
@@ -57,7 +57,7 @@ public class UserResponse {
                 .email(user.getEmail())
                 .nickname(user.getNickname())
                 .role(user.getRole())
-                .bio(user.getBio())
+                .intro(user.getBio())
                 .profileImage(user.getProfileImageUrl())
                 .createdAt(user.getCreatedAt())
                 .totalVideos(totalVideos)

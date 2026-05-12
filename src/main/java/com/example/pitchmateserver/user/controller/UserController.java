@@ -26,7 +26,7 @@ public class UserController {
                     로그인한 사용자의 프로필 정보와 통계를 반환합니다.
 
                     **응답 주요 필드**
-                    - `userId`, `email`, `nickname`, `role` (`MENTOR` 또는 `MENTEE`), `bio`, `profileImage`
+                    - `userId`, `email`, `nickname`, `role` (`MENTOR` 또는 `MENTEE`), `intro`, `profileImage`
                     - `totalVideos`: 전체 업로드 영상 수
                     - `analyzedVideos`: AI 분석이 완료된 영상 수
                     - `averageScore`: 전체 평가 평균 점수
@@ -59,7 +59,7 @@ public class UserController {
     @Operation(
             summary = "프로필 수정",
             description = """
-                    닉네임, 프로필 이미지 URL, 자기소개(bio)를 수정합니다. 변경할 필드만 보내면 됩니다.
+                    닉네임, 프로필 이미지 URL, 자기소개(intro)를 수정합니다. 변경할 필드만 보내면 됩니다.
                     `profileImage`는 이미지 URL을 전달하세요.
 
                     **에러 응답**
@@ -72,7 +72,7 @@ public class UserController {
     public ResponseEntity<ApiResponse<Void>> updateProfile(
             @CurrentUser Long userId,
             @Valid @RequestBody UpdateProfileRequest request) {
-        userService.updateProfile(userId, request.getNickname(), request.getProfileImage(), request.getBio());
+        userService.updateProfile(userId, request.getNickname(), request.getProfileImage(), request.getIntro());
         return ResponseEntity.ok(ApiResponse.ok(null, "프로필 수정 완료"));
     }
 

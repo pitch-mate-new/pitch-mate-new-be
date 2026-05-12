@@ -10,7 +10,7 @@ public class MentorSearchResponse {
 
     private Long mentorId;
     private String nickname;
-    private String bio;
+    private String intro;
     private String profileImage;
     private String connectionStatus; // null, PENDING, ACCEPTED, REJECTED
 
@@ -18,7 +18,7 @@ public class MentorSearchResponse {
         return MentorSearchResponse.builder()
                 .mentorId(mentor.getId())
                 .nickname(mentor.getNickname())
-                .bio(mentor.getBio())
+                .intro(mentor.getBio())
                 .profileImage(mentor.getProfileImageUrl())
                 .connectionStatus(connectionStatus)
                 .build();

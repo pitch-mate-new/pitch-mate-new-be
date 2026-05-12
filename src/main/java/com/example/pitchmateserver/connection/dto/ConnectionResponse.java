@@ -13,7 +13,7 @@ public class ConnectionResponse {
     private Long connectionId;
     private Long mentorId;
     private String mentorNickname;
-    private String mentorBio;
+    private String mentorIntro;
     private Long menteeId;
     private String menteeNickname;
     private String menteeIntro;
@@ -25,7 +25,7 @@ public class ConnectionResponse {
                 .connectionId(connection.getId())
                 .mentorId(connection.getMentor().getId())
                 .mentorNickname(connection.getMentor().getNickname())
-                .mentorBio(connection.getMentor().getBio())
+                .mentorIntro(connection.getMentor().getBio())
                 .menteeId(connection.getMentee().getId())
                 .menteeNickname(connection.getMentee().getNickname())
                 .menteeIntro(connection.getMenteeIntro())

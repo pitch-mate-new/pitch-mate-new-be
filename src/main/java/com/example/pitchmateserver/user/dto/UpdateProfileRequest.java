@@ -12,5 +12,5 @@ public class UpdateProfileRequest {
     private String profileImage;
 
     @Size(max = 200, message = "자기소개는 200자 이내여야 합니다.")
-    private String bio;
+    private String intro;
 }
