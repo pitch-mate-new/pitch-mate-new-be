@@ -41,6 +41,15 @@ uploads/
 .DS_Store
 .claude/
 
+# 실수로 올라간 파일 방지
+*.png
+*.jpg
+*.jpeg
+*.pdf
+KakaoTalk_*
+Screenshot*
+TalkFile*
+
 # Terraform
 terraform/.terraform/
 terraform/.terraform.lock.hcl
