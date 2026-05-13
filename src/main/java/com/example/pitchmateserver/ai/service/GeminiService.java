@@ -97,7 +97,7 @@ public class GeminiService {
             try { Thread.sleep(3000); } catch (InterruptedException ignored) {}
 
             String statusResponse = restClient.get()
-                    .uri("/v1beta/{fileName}?key={key}", fileName, apiKey)
+                    .uri("/v1beta/" + fileName + "?key=" + apiKey)
                     .retrieve()
                     .body(String.class);
 
