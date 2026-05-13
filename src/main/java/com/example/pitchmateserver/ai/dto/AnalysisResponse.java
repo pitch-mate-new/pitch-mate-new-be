@@ -1,6 +1,7 @@
 package com.example.pitchmateserver.ai.dto;
 
 import com.example.pitchmateserver.ai.entity.Analysis;
+import com.fasterxml.jackson.annotation.JsonRawValue;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -18,6 +19,7 @@ public class AnalysisResponse {
     private Double speechRateWpm;
     private Double silenceRatio;
     private Integer fillerWordCount;
+    @JsonRawValue
     private String fillerWords;
     private Double speakingDurationSeconds;
 

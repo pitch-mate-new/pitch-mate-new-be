@@ -236,11 +236,14 @@ public class GeminiService {
                         val.path("comment").asText("AI 평가 결과입니다.")
                 ));
             });
+            if (scores.isEmpty()) {
+                throw new RuntimeException("Gemini 평가 응답에 scores가 없음");
+            }
             String overallComment = node.path("overallComment").asText("AI가 영상을 분석하여 생성한 종합 평가입니다.");
             return new GeminiEvaluationResult(scores, overallComment);
         } catch (Exception e) {
             log.error("Gemini 평가 생성 실패: {}", e.getMessage());
-            return new GeminiEvaluationResult(Collections.emptyMap(), "AI 평가를 완료했습니다.");
+            throw new RuntimeException("Gemini 평가 실패: " + e.getMessage(), e);
         }
     }
 
@@ -260,7 +263,7 @@ public class GeminiService {
                 )),
                 "generationConfig", Map.of(
                         "temperature", 0.1,
-                        "maxOutputTokens", 2048
+                        "maxOutputTokens", 8192
                 )
         );
 
