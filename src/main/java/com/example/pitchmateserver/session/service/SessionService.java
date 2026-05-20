@@ -64,19 +64,43 @@ public class SessionService {
         VideoResponse video = VideoResponse.from(session.getVideo());
 
         var rawEvals = evaluationRepository.findByVideoIdWithScores(videoId);
-        List<FeedbackResponse> feedbacks = feedbackRepository
-                .findByVideoIdOrderByStartTimeSecondsAsc(videoId)
-                .stream().map(FeedbackResponse::from).toList();
-        List<EvaluationResponse> evaluations = rawEvals.stream()
-                .map(EvaluationResponse::from).toList();
+        var rawFeedbacks = feedbackRepository.findByVideoIdOrderByStartTimeSecondsAsc(videoId);
         AnalysisResponse analysis = analysisRepository.findByVideoId(videoId)
                 .map(AnalysisResponse::from)
                 .orElse(null);
 
+        var aiEvals = rawEvals.stream()
+                .filter(e -> e.getType() == com.example.pitchmateserver.evaluation.entity.Evaluation.EvaluationType.AI)
+                .toList();
+        var mentorEvals = rawEvals.stream()
+                .filter(e -> e.getType() == com.example.pitchmateserver.evaluation.entity.Evaluation.EvaluationType.MANUAL)
+                .toList();
+
+        SessionDetailResponse.Feedbacks feedbacks = SessionDetailResponse.Feedbacks.builder()
+                .ai(rawFeedbacks.stream()
+                        .filter(f -> f.getType() == com.example.pitchmateserver.feedback.entity.Feedback.FeedbackType.AI)
+                        .map(FeedbackResponse::from).toList())
+                .mentor(rawFeedbacks.stream()
+                        .filter(f -> f.getType() == com.example.pitchmateserver.feedback.entity.Feedback.FeedbackType.MANUAL)
+                        .map(FeedbackResponse::from).toList())
+                .build();
+
+        SessionDetailResponse.Evaluations evaluations = SessionDetailResponse.Evaluations.builder()
+                .ai(aiEvals.isEmpty() ? null : EvaluationResponse.from(aiEvals.get(0)))
+                .mentor(mentorEvals.isEmpty() ? null : EvaluationResponse.from(mentorEvals.get(0)))
+                .build();
+
         SessionDetailResponse.CategoryScores categoryScores = SessionDetailResponse.CategoryScores.builder()
-                .speechAvg(calcCategoryAvg(rawEvals, "스피치"))
-                .nonVerbalAvg(calcCategoryAvg(rawEvals, "비언어"))
-                .deliveryAvg(calcCategoryAvg(rawEvals, "전달력·표현력"))
+                .ai(aiEvals.isEmpty() ? null : SessionDetailResponse.CategoryScores.CategoryAvg.builder()
+                        .speechAvg(calcCategoryAvg(aiEvals, "스피치"))
+                        .nonVerbalAvg(calcCategoryAvg(aiEvals, "비언어"))
+                        .deliveryAvg(calcCategoryAvg(aiEvals, "전달력·표현력"))
+                        .build())
+                .mentor(mentorEvals.isEmpty() ? null : SessionDetailResponse.CategoryScores.CategoryAvg.builder()
+                        .speechAvg(calcCategoryAvg(mentorEvals, "스피치"))
+                        .nonVerbalAvg(calcCategoryAvg(mentorEvals, "비언어"))
+                        .deliveryAvg(calcCategoryAvg(mentorEvals, "전달력·표현력"))
+                        .build())
                 .build();
 
         return SessionDetailResponse.of(video, feedbacks, evaluations, analysis, categoryScores);
@@ -177,7 +201,8 @@ public class SessionService {
     private Double calcCategoryAvg(
             List<com.example.pitchmateserver.evaluation.entity.Evaluation> evals, String category) {
         if (evals.isEmpty()) return null;
-        var scores = evals.get(0).getScores().stream()
+        var scores = evals.stream()
+                .flatMap(e -> e.getScores().stream())
                 .filter(s -> category.equals(s.getRubric().getCategory()))
                 .toList();
         if (scores.isEmpty()) return null;

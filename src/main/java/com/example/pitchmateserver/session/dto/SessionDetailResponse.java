@@ -14,22 +14,43 @@ import java.util.List;
 public class SessionDetailResponse {
 
     private VideoResponse video;
-    private List<FeedbackResponse> feedbacks;
-    private List<EvaluationResponse> evaluations;
+    private Feedbacks feedbacks;
+    private Evaluations evaluations;
     private AnalysisResponse analysis;
     private CategoryScores categoryScores;
 
     @Getter
     @Builder
+    public static class Feedbacks {
+        private List<FeedbackResponse> ai;
+        private List<FeedbackResponse> mentor;
+    }
+
+    @Getter
+    @Builder
+    public static class Evaluations {
+        private EvaluationResponse ai;
+        private EvaluationResponse mentor;
+    }
+
+    @Getter
+    @Builder
     public static class CategoryScores {
-        private Double speechAvg;
-        private Double nonVerbalAvg;
-        private Double deliveryAvg;
+        private CategoryAvg ai;
+        private CategoryAvg mentor;
+
+        @Getter
+        @Builder
+        public static class CategoryAvg {
+            private Double speechAvg;
+            private Double nonVerbalAvg;
+            private Double deliveryAvg;
+        }
     }
 
     public static SessionDetailResponse of(VideoResponse video,
-                                           List<FeedbackResponse> feedbacks,
-                                           List<EvaluationResponse> evaluations,
+                                           Feedbacks feedbacks,
+                                           Evaluations evaluations,
                                            AnalysisResponse analysis,
                                            CategoryScores categoryScores) {
         return SessionDetailResponse.builder()
