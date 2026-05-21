@@ -2,15 +2,15 @@ package com.example.pitchmateserver.user.controller;
 
 import com.example.pitchmateserver.common.response.ApiResponse;
 import com.example.pitchmateserver.common.security.CurrentUser;
-import com.example.pitchmateserver.user.dto.UpdateProfileRequest;
 import com.example.pitchmateserver.user.dto.UserResponse;
 import com.example.pitchmateserver.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @Tag(name = "사용자", description = "내 정보 조회/수정, 회원 탈퇴 API")
 @RestController
@@ -59,8 +59,8 @@ public class UserController {
     @Operation(
             summary = "프로필 수정",
             description = """
-                    닉네임, 프로필 이미지 URL, 자기소개(intro)를 수정합니다. 변경할 필드만 보내면 됩니다.
-                    `profileImage`는 이미지 URL을 전달하세요.
+                    닉네임, 프로필 이미지 파일, 자기소개(intro)를 수정합니다. 변경할 필드만 보내면 됩니다.
+                    `multipart/form-data` 형식으로 전송하세요.
 
                     **에러 응답**
                     - 401: 인증 토큰 없음 또는 만료
@@ -68,11 +68,13 @@ public class UserController {
                     - 409 (code 4002): 이미 사용 중인 닉네임
                     """
     )
-    @PutMapping("/me")
+    @PutMapping(value = "/me", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<Void>> updateProfile(
             @CurrentUser Long userId,
-            @Valid @RequestBody UpdateProfileRequest request) {
-        userService.updateProfile(userId, request.getNickname(), request.getProfileImage(), request.getIntro());
+            @RequestParam(required = false) String nickname,
+            @RequestParam(required = false) MultipartFile profileImage,
+            @RequestParam(required = false) String intro) {
+        userService.updateProfile(userId, nickname, profileImage, intro);
         return ResponseEntity.ok(ApiResponse.ok(null, "프로필 수정 완료"));
     }
 

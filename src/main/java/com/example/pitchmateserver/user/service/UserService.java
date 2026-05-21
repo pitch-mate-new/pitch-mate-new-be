@@ -4,6 +4,7 @@ import com.example.pitchmateserver.ai.entity.Analysis;
 import com.example.pitchmateserver.ai.repository.AnalysisRepository;
 import com.example.pitchmateserver.common.exception.BusinessException;
 import com.example.pitchmateserver.common.exception.ErrorCode;
+import com.example.pitchmateserver.common.storage.S3StorageService;
 import com.example.pitchmateserver.user.dto.UserResponse;
 import com.example.pitchmateserver.user.entity.User;
 import com.example.pitchmateserver.user.repository.UserRepository;
@@ -12,6 +13,7 @@ import com.example.pitchmateserver.video.repository.VideoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
@@ -25,6 +27,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final VideoRepository videoRepository;
     private final AnalysisRepository analysisRepository;
+    private final S3StorageService s3StorageService;
 
     public UserResponse getMyInfo(Long userId) {
         User user = findUser(userId);
@@ -53,7 +56,7 @@ public class UserService {
     }
 
     @Transactional
-    public void updateProfile(Long userId, String nickname, String profileImageUrl, String bio) {
+    public void updateProfile(Long userId, String nickname, MultipartFile profileImage, String bio) {
         User user = findUser(userId);
         if (nickname != null) {
             if (!nickname.equals(user.getNickname()) && userRepository.existsByNickname(nickname)) {
@@ -61,8 +64,9 @@ public class UserService {
             }
             user.updateNickname(nickname);
         }
-        if (profileImageUrl != null) {
-            user.updateProfileImageUrl(profileImageUrl);
+        if (profileImage != null && !profileImage.isEmpty()) {
+            String imageUrl = s3StorageService.uploadFile(profileImage);
+            user.updateProfileImageUrl(imageUrl);
         }
         if (bio != null) {
             user.updateBio(bio);

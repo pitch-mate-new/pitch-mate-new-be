@@ -2,6 +2,7 @@ package com.example.pitchmateserver.ai.dto;
 
 import com.example.pitchmateserver.ai.entity.Analysis;
 import com.fasterxml.jackson.annotation.JsonRawValue;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -13,6 +14,7 @@ public class AnalysisResponse {
 
     private Long analysisId;
     private Long videoId;
+    @Schema(description = "분석 상태", allowableValues = {"PENDING", "IN_PROGRESS", "COMPLETED", "FAILED"})
     private String status;
 
     // 분석 결과 (COMPLETED 상태일 때만 채워짐)

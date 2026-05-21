@@ -69,7 +69,7 @@ public class ConnectionService {
                 .mentee(mentee)
                 .mentor(mentor)
                 .status(MentorConnection.ConnectionStatus.PENDING)
-                .menteeIntro(request.getMenteeIntro())
+                .menteeIntro(mentee.getBio())
                 .build());
 
         return ConnectionResponse.from(connection);

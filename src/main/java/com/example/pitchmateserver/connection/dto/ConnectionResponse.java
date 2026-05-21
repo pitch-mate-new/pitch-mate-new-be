@@ -1,6 +1,7 @@
 package com.example.pitchmateserver.connection.dto;
 
 import com.example.pitchmateserver.connection.entity.MentorConnection;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -17,6 +18,7 @@ public class ConnectionResponse {
     private Long menteeId;
     private String menteeNickname;
     private String menteeIntro;
+    @Schema(description = "연결 상태", allowableValues = {"PENDING", "ACCEPTED", "REJECTED"})
     private String status;
     private LocalDateTime createdAt;
 

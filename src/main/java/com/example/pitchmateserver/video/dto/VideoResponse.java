@@ -1,6 +1,7 @@
 package com.example.pitchmateserver.video.dto;
 
 import com.example.pitchmateserver.video.entity.Video;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -17,7 +18,9 @@ public class VideoResponse {
     private String description;
     private String videoUrl;
     private String thumbnailUrl;
+    @Schema(description = "영상 업로드 방식", allowableValues = {"UPLOAD", "RECORD"})
     private String type;
+    @Schema(description = "연습 종류", allowableValues = {"PRESENTATION", "INTERVIEW", "SPEECH"})
     private String practiceType;
     private Long requestedMentorId;
     private Integer durationSeconds;
