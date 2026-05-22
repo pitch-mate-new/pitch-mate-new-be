@@ -17,6 +17,7 @@ public class ConnectionResponse {
     private String mentorIntro;
     private Long menteeId;
     private String menteeNickname;
+    private String menteeProfileImage;
     private String menteeIntro;
     @Schema(description = "연결 상태", allowableValues = {"PENDING", "ACCEPTED", "REJECTED"})
     private String status;
@@ -30,6 +31,7 @@ public class ConnectionResponse {
                 .mentorIntro(connection.getMentor().getBio())
                 .menteeId(connection.getMentee().getId())
                 .menteeNickname(connection.getMentee().getNickname())
+                .menteeProfileImage(connection.getMentee().getProfileImageUrl())
                 .menteeIntro(connection.getMenteeIntro())
                 .status(connection.getStatus().name())
                 .createdAt(connection.getCreatedAt())
