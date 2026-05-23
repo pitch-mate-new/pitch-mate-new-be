@@ -2,6 +2,7 @@ package com.example.pitchmateserver.user.controller;
 
 import com.example.pitchmateserver.common.response.ApiResponse;
 import com.example.pitchmateserver.common.security.CurrentUser;
+import com.example.pitchmateserver.user.dto.MentorDashboardResponse;
 import com.example.pitchmateserver.user.dto.UserResponse;
 import com.example.pitchmateserver.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -76,6 +77,29 @@ public class UserController {
             @RequestParam(required = false) String intro) {
         userService.updateProfile(userId, nickname, profileImage, intro);
         return ResponseEntity.ok(ApiResponse.ok(null, "프로필 수정 완료"));
+    }
+
+    @Operation(
+            summary = "멘토 대시보드 조회",
+            description = """
+                    멘토 전용 대시보드를 반환합니다.
+
+                    **응답 주요 필드**
+                    - `pendingFeedbackCount`: 대기 중인 피드백 수
+                    - `completedFeedbackCount`: 완료한 피드백 수
+                    - `connectedMenteeCount`: 연결된 멘티 수
+                    - `requestedVideos`: 피드백 요청받은 영상 목록
+                      - `videoId`, `title`, `thumbnailUrl`, `durationSeconds`
+                      - `menteeId`, `menteeNickname`: 멘티 정보
+                      - `createdAt`: 영상 업로드 날짜/시간
+
+                    **에러 응답**
+                    - 401: 인증 토큰 없음 또는 만료
+                    """
+    )
+    @GetMapping("/mentor/dashboard")
+    public ResponseEntity<ApiResponse<MentorDashboardResponse>> getMentorDashboard(@CurrentUser Long userId) {
+        return ResponseEntity.ok(ApiResponse.ok(userService.getMentorDashboard(userId)));
     }
 
     @Operation(

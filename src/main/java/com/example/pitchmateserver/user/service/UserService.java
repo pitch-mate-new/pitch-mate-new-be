@@ -5,6 +5,11 @@ import com.example.pitchmateserver.ai.repository.AnalysisRepository;
 import com.example.pitchmateserver.common.exception.BusinessException;
 import com.example.pitchmateserver.common.exception.ErrorCode;
 import com.example.pitchmateserver.common.storage.S3StorageService;
+import com.example.pitchmateserver.connection.entity.MentorConnection;
+import com.example.pitchmateserver.connection.repository.ConnectionRepository;
+import com.example.pitchmateserver.evaluation.entity.Evaluation;
+import com.example.pitchmateserver.evaluation.repository.EvaluationRepository;
+import com.example.pitchmateserver.user.dto.MentorDashboardResponse;
 import com.example.pitchmateserver.user.dto.UserResponse;
 import com.example.pitchmateserver.user.entity.User;
 import com.example.pitchmateserver.user.repository.UserRepository;
@@ -17,6 +22,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -28,6 +34,8 @@ public class UserService {
     private final VideoRepository videoRepository;
     private final AnalysisRepository analysisRepository;
     private final S3StorageService s3StorageService;
+    private final ConnectionRepository connectionRepository;
+    private final EvaluationRepository evaluationRepository;
 
     public UserResponse getMyInfo(Long userId) {
         User user = findUser(userId);
@@ -76,6 +84,30 @@ public class UserService {
     @Transactional
     public void deleteAccount(Long userId) {
         userRepository.delete(findUser(userId));
+    }
+
+    public MentorDashboardResponse getMentorDashboard(Long mentorId) {
+        List<Video> requestedVideos = videoRepository.findByRequestedMentorIdOrderByCreatedAtDesc(mentorId);
+
+        List<Long> videoIds = requestedVideos.stream().map(Video::getId).toList();
+        Set<Long> completedVideoIds = evaluationRepository.findByVideoIdInAndType(videoIds, Evaluation.EvaluationType.MANUAL)
+                .stream().map(e -> e.getVideo().getId()).collect(Collectors.toSet());
+
+        long completedCount = completedVideoIds.size();
+        long pendingCount = requestedVideos.size() - completedCount;
+        long connectedMenteeCount = connectionRepository.countByMentorIdAndStatus(mentorId, MentorConnection.ConnectionStatus.ACCEPTED);
+
+        List<MentorDashboardResponse.RequestedVideoSummary> videoSummaries = requestedVideos.stream()
+                .filter(v -> !completedVideoIds.contains(v.getId()))
+                .map(MentorDashboardResponse.RequestedVideoSummary::of)
+                .toList();
+
+        return MentorDashboardResponse.builder()
+                .pendingFeedbackCount(pendingCount)
+                .completedFeedbackCount(completedCount)
+                .connectedMenteeCount(connectedMenteeCount)
+                .requestedVideos(videoSummaries)
+                .build();
     }
 
     public User findUser(Long userId) {

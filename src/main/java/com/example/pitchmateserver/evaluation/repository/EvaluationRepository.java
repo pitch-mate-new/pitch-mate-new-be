@@ -19,4 +19,7 @@ public interface EvaluationRepository extends JpaRepository<Evaluation, Long> {
     boolean existsByVideoIdAndType(Long videoId, Evaluation.EvaluationType type);
 
     Optional<Evaluation> findFirstByVideoIdAndTypeOrderByCreatedAtDesc(Long videoId, Evaluation.EvaluationType type);
+
+    @Query("SELECT e FROM Evaluation e WHERE e.video.id IN :videoIds AND e.type = :type")
+    List<Evaluation> findByVideoIdInAndType(@Param("videoIds") List<Long> videoIds, @Param("type") Evaluation.EvaluationType type);
 }

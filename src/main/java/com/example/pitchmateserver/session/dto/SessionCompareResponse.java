@@ -1,5 +1,6 @@
 package com.example.pitchmateserver.session.dto;
 
+import com.example.pitchmateserver.evaluation.dto.EvaluationResponse;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -17,6 +18,10 @@ public class SessionCompareResponse {
     private CategoryCompare categoryData;
     private String session1OverallComment;
     private String session2OverallComment;
+
+    // 멘토 평가
+    private EvaluationResponse session1MentorEvaluation;
+    private EvaluationResponse session2MentorEvaluation;
 
     @Getter
     @Builder

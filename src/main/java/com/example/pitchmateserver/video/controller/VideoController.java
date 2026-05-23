@@ -60,11 +60,13 @@ public class VideoController {
             @Parameter(description = "영상 설명") @RequestParam(required = false) String description,
             @Parameter(description = "영상 유형: UPLOAD 또는 RECORD") @RequestParam Video.VideoType videoType,
             @Parameter(description = "연습 유형: PRESENTATION, INTERVIEW, SPEECH (선택)") @RequestParam(required = false) Video.PracticeType practiceType,
-            @Parameter(description = "피드백 요청할 멘토 ID (ACCEPTED 연결된 멘토만 가능, 선택)") @RequestParam(required = false) Long requestedMentorId
+            @Parameter(description = "피드백 요청할 멘토 ID (ACCEPTED 연결된 멘토만 가능, 선택)") @RequestParam(required = false) Long requestedMentorId,
+            @Parameter(description = "썸네일 이미지 파일 (선택)") @RequestParam(required = false) MultipartFile thumbnailFile,
+            @Parameter(description = "영상 길이 (초, 선택)") @RequestParam(required = false) Integer durationSeconds
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.of(SuccessCode.SUCCESS, HttpStatus.CREATED,
-                        videoService.uploadVideo(userId, file, title, description, videoType, practiceType, requestedMentorId)));
+                        videoService.uploadVideo(userId, file, title, description, videoType, practiceType, requestedMentorId, thumbnailFile, durationSeconds)));
     }
 
     @Operation(

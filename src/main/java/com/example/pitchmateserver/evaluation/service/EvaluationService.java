@@ -52,10 +52,11 @@ public class EvaluationService {
                 .map(sr -> {
                     Rubric rubric = rubricRepository.findById(sr.getRubricId())
                             .orElseThrow(() -> new BusinessException(ErrorCode.RUBRIC_NOT_FOUND));
+                    int cappedScore = Math.max(0, Math.min(sr.getScore(), rubric.getMaxScore()));
                     return EvaluationScore.builder()
                             .evaluation(evaluation)
                             .rubric(rubric)
-                            .score(sr.getScore())
+                            .score(cappedScore)
                             .comment(sr.getComment())
                             .build();
                 })

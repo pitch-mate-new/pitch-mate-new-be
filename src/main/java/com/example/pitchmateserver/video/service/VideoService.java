@@ -47,10 +47,15 @@ public class VideoService {
     @Transactional
     public VideoResponse uploadVideo(Long userId, MultipartFile file, String title, String description,
                                      Video.VideoType videoType, Video.PracticeType practiceType,
-                                     Long requestedMentorId) {
+                                     Long requestedMentorId, MultipartFile thumbnailFile, Integer durationSeconds) {
         validateFileFormat(file);
         User user = userService.findUser(userId);
         String videoUrl = storageService.uploadFile(file);
+
+        String thumbnailUrl = null;
+        if (thumbnailFile != null && !thumbnailFile.isEmpty()) {
+            thumbnailUrl = storageService.uploadFile(thumbnailFile);
+        }
 
         String defaultTitle = videoType == Video.VideoType.RECORD
                 ? "녹화 영상 " + System.currentTimeMillis()
@@ -69,6 +74,8 @@ public class VideoService {
                 .title(title != null ? title : defaultTitle)
                 .description(description)
                 .videoUrl(videoUrl)
+                .thumbnailUrl(thumbnailUrl)
+                .durationSeconds(durationSeconds)
                 .type(videoType)
                 .practiceType(practiceType)
                 .requestedMentor(requestedMentor)

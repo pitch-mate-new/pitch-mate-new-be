@@ -114,13 +114,18 @@ public class SessionService {
         var eval1 = evaluationRepository.findByVideoIdWithScores(videoId1);
         var eval2 = evaluationRepository.findByVideoIdWithScores(videoId2);
 
-        SessionCompareResponse.ScoreCompare scoreCompare = buildScoreCompare(eval1, eval2);
-        SessionCompareResponse.CategoryCompare categoryCompare = buildCategoryCompare(eval1, eval2);
+        var ai1 = eval1.stream().filter(e -> e.getType() == com.example.pitchmateserver.evaluation.entity.Evaluation.EvaluationType.AI).toList();
+        var ai2 = eval2.stream().filter(e -> e.getType() == com.example.pitchmateserver.evaluation.entity.Evaluation.EvaluationType.AI).toList();
+        var mentor1 = eval1.stream().filter(e -> e.getType() == com.example.pitchmateserver.evaluation.entity.Evaluation.EvaluationType.MANUAL).toList();
+        var mentor2 = eval2.stream().filter(e -> e.getType() == com.example.pitchmateserver.evaluation.entity.Evaluation.EvaluationType.MANUAL).toList();
 
-        Integer score1 = eval1.isEmpty() ? null : eval1.get(0).getTotalScore();
-        Integer score2 = eval2.isEmpty() ? null : eval2.get(0).getTotalScore();
-        String comment1 = eval1.isEmpty() ? null : eval1.get(0).getComment();
-        String comment2 = eval2.isEmpty() ? null : eval2.get(0).getComment();
+        SessionCompareResponse.ScoreCompare scoreCompare = buildScoreCompare(ai1, ai2);
+        SessionCompareResponse.CategoryCompare categoryCompare = buildCategoryCompare(ai1, ai2);
+
+        Integer score1 = ai1.isEmpty() ? null : ai1.get(0).getTotalScore();
+        Integer score2 = ai2.isEmpty() ? null : ai2.get(0).getTotalScore();
+        String comment1 = ai1.isEmpty() ? null : ai1.get(0).getComment();
+        String comment2 = ai2.isEmpty() ? null : ai2.get(0).getComment();
 
         return SessionCompareResponse.builder()
                 .session1(SessionCompareResponse.CompareSessionInfo.builder()
@@ -141,6 +146,8 @@ public class SessionService {
                 .categoryData(categoryCompare)
                 .session1OverallComment(comment1)
                 .session2OverallComment(comment2)
+                .session1MentorEvaluation(mentor1.isEmpty() ? null : EvaluationResponse.from(mentor1.get(0)))
+                .session2MentorEvaluation(mentor2.isEmpty() ? null : EvaluationResponse.from(mentor2.get(0)))
                 .build();
     }
 
