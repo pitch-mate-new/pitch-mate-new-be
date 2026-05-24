@@ -9,6 +9,7 @@ import com.example.pitchmateserver.connection.entity.MentorConnection;
 import com.example.pitchmateserver.connection.repository.ConnectionRepository;
 import com.example.pitchmateserver.evaluation.entity.Evaluation;
 import com.example.pitchmateserver.evaluation.repository.EvaluationRepository;
+import com.example.pitchmateserver.user.dto.MenteeDashboardResponse;
 import com.example.pitchmateserver.user.dto.MentorDashboardResponse;
 import com.example.pitchmateserver.user.dto.UserResponse;
 import com.example.pitchmateserver.user.entity.User;
@@ -38,29 +39,35 @@ public class UserService {
     private final EvaluationRepository evaluationRepository;
 
     public UserResponse getMyInfo(Long userId) {
-        User user = findUser(userId);
+        return UserResponse.from(findUser(userId));
+    }
+
+    public UserResponse getUserById(Long userId) {
+        return UserResponse.from(findUser(userId));
+    }
+
+    public MenteeDashboardResponse getMenteeDashboard(Long userId) {
+        long totalVideos = videoRepository.countByUserId(userId);
+        long analyzedVideos = analysisRepository.countByVideoUserIdAndStatus(userId, Analysis.AnalysisStatus.COMPLETED);
+        Double averageScore = videoRepository.findAverageScoreByUserId(userId);
+        long connectedMentorsCount = connectionRepository.countByMenteeIdAndStatus(userId, MentorConnection.ConnectionStatus.ACCEPTED);
 
         List<Video> recentVideos = videoRepository.findTop4ByUserIdOrderByCreatedAtDesc(userId);
         List<Long> videoIds = recentVideos.stream().map(Video::getId).toList();
         Map<Long, Analysis> analysisMap = analysisRepository.findByVideoIdIn(videoIds)
                 .stream().collect(Collectors.toMap(a -> a.getVideo().getId(), a -> a));
 
-        List<UserResponse.RecentVideoSummary> recentVideoSummaries = recentVideos.stream()
-                .map(v -> UserResponse.RecentVideoSummary.from(v, analysisMap))
+        List<MenteeDashboardResponse.RecentVideoSummary> recentVideoSummaries = recentVideos.stream()
+                .map(v -> MenteeDashboardResponse.RecentVideoSummary.from(v, analysisMap))
                 .toList();
 
-        return UserResponse.from(
-                user,
-                videoRepository.countByUserId(userId),
-                analysisRepository.countByVideoUserIdAndStatus(userId, Analysis.AnalysisStatus.COMPLETED),
-                videoRepository.findAverageScoreByUserId(userId),
-                recentVideoSummaries
-        );
-    }
-
-    public UserResponse getUserById(Long userId) {
-        User user = findUser(userId);
-        return UserResponse.from(user, 0, 0, null, List.of());
+        return MenteeDashboardResponse.builder()
+                .totalVideos(totalVideos)
+                .analyzedVideos(analyzedVideos)
+                .averageScore(averageScore)
+                .connectedMentorsCount(connectedMentorsCount)
+                .recentVideos(recentVideoSummaries)
+                .build();
     }
 
     @Transactional
@@ -90,8 +97,9 @@ public class UserService {
         List<Video> requestedVideos = videoRepository.findByRequestedMentorIdOrderByCreatedAtDesc(mentorId);
 
         List<Long> videoIds = requestedVideos.stream().map(Video::getId).toList();
-        Set<Long> completedVideoIds = evaluationRepository.findByVideoIdInAndType(videoIds, Evaluation.EvaluationType.MANUAL)
-                .stream().map(e -> e.getVideo().getId()).collect(Collectors.toSet());
+        Set<Long> completedVideoIds = videoIds.isEmpty() ? Set.of()
+                : evaluationRepository.findByVideoIdInAndType(videoIds, Evaluation.EvaluationType.MANUAL)
+                        .stream().map(e -> e.getVideo().getId()).collect(Collectors.toSet());
 
         long completedCount = completedVideoIds.size();
         long pendingCount = requestedVideos.size() - completedCount;

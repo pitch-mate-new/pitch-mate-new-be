@@ -2,6 +2,7 @@ package com.example.pitchmateserver.user.controller;
 
 import com.example.pitchmateserver.common.response.ApiResponse;
 import com.example.pitchmateserver.common.security.CurrentUser;
+import com.example.pitchmateserver.user.dto.MenteeDashboardResponse;
 import com.example.pitchmateserver.user.dto.MentorDashboardResponse;
 import com.example.pitchmateserver.user.dto.UserResponse;
 import com.example.pitchmateserver.user.service.UserService;
@@ -13,7 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-@Tag(name = "사용자", description = "내 정보 조회/수정, 회원 탈퇴 API")
+@Tag(name = "사용자", description = "내 정보 조회/수정, 대시보드, 회원 탈퇴 API")
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
@@ -22,16 +23,12 @@ public class UserController {
     private final UserService userService;
 
     @Operation(
-            summary = "내 정보 조회",
+            summary = "내 프로필 조회",
             description = """
-                    로그인한 사용자의 프로필 정보와 통계를 반환합니다.
+                    로그인한 사용자의 프로필 정보를 반환합니다.
 
                     **응답 주요 필드**
-                    - `userId`, `email`, `nickname`, `role` (`MENTOR` 또는 `MENTEE`), `intro`, `profileImage`
-                    - `totalVideos`: 전체 업로드 영상 수
-                    - `analyzedVideos`: AI 분석이 완료된 영상 수
-                    - `averageScore`: 전체 평가 평균 점수
-                    - `recentVideos`: 최근 영상 최대 4개 (`videoId`, `title`, `thumbnailUrl`, `durationSeconds`, `analysisStatus`, `createdAt`)
+                    - `userId`, `email`, `nickname`, `role` (`MENTOR` 또는 `MENTEE`), `intro`, `profileImage`, `createdAt`
 
                     **에러 응답**
                     - 401: 인증 토큰 없음 또는 만료
@@ -80,6 +77,28 @@ public class UserController {
     }
 
     @Operation(
+            summary = "멘티 대시보드 조회",
+            description = """
+                    멘티 전용 대시보드를 반환합니다.
+
+                    **응답 주요 필드**
+                    - `totalVideos`: 전체 업로드 영상 수
+                    - `analyzedVideos`: AI 분석이 완료된 영상 수
+                    - `averageScore`: AI 평가 평균 점수 (100점 만점)
+                    - `connectedMentorsCount`: 연결된 멘토 수
+                    - `recentVideos`: 최근 영상 최대 4개 (`videoId`, `title`, `thumbnailUrl`, `durationSeconds`, `analysisStatus`, `createdAt`)
+
+                    **에러 응답**
+                    - 401: 인증 토큰 없음 또는 만료
+                    - 404 (code 4007): 사용자를 찾을 수 없음
+                    """
+    )
+    @GetMapping("/mentee/dashboard")
+    public ResponseEntity<ApiResponse<MenteeDashboardResponse>> getMenteeDashboard(@CurrentUser Long userId) {
+        return ResponseEntity.ok(ApiResponse.ok(userService.getMenteeDashboard(userId)));
+    }
+
+    @Operation(
             summary = "멘토 대시보드 조회",
             description = """
                     멘토 전용 대시보드를 반환합니다.
@@ -88,7 +107,7 @@ public class UserController {
                     - `pendingFeedbackCount`: 대기 중인 피드백 수
                     - `completedFeedbackCount`: 완료한 피드백 수
                     - `connectedMenteeCount`: 연결된 멘티 수
-                    - `requestedVideos`: 피드백 요청받은 영상 목록
+                    - `requestedVideos`: 피드백 대기 중인 영상 목록
                       - `videoId`, `title`, `thumbnailUrl`, `durationSeconds`
                       - `menteeId`, `menteeNickname`: 멘티 정보
                       - `createdAt`: 영상 업로드 날짜/시간

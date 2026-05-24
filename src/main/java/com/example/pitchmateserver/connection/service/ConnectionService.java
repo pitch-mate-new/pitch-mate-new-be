@@ -72,7 +72,7 @@ public class ConnectionService {
                 .menteeIntro(mentee.getBio())
                 .build());
 
-        return ConnectionResponse.from(connection);
+        return ConnectionResponse.from(connection, menteeId);
     }
 
     public List<ConnectionResponse> getMyConnections(Long userId) {
@@ -81,7 +81,7 @@ public class ConnectionService {
                 ? connectionRepository.findByMentorIdOrderByCreatedAtDesc(userId)
                 : connectionRepository.findByMenteeIdOrderByCreatedAtDesc(userId);
 
-        return connections.stream().map(ConnectionResponse::from).toList();
+        return connections.stream().map(c -> ConnectionResponse.from(c, userId)).toList();
     }
 
     @Transactional
@@ -91,7 +91,7 @@ public class ConnectionService {
             throw new BusinessException(ErrorCode.CONNECTION_ACCESS_DENIED);
         }
         connection.accept();
-        return ConnectionResponse.from(connection);
+        return ConnectionResponse.from(connection, mentorId);
     }
 
     @Transactional
@@ -101,7 +101,7 @@ public class ConnectionService {
             throw new BusinessException(ErrorCode.CONNECTION_ACCESS_DENIED);
         }
         connection.reject();
-        return ConnectionResponse.from(connection);
+        return ConnectionResponse.from(connection, mentorId);
     }
 
     @Transactional
@@ -119,12 +119,12 @@ public class ConnectionService {
 
     public List<ConnectionResponse> getAcceptedMentees(Long mentorId) {
         return connectionRepository.findByMentorIdAndStatus(mentorId, MentorConnection.ConnectionStatus.ACCEPTED)
-                .stream().map(ConnectionResponse::from).toList();
+                .stream().map(c -> ConnectionResponse.from(c, mentorId)).toList();
     }
 
     public List<ConnectionResponse> getAcceptedMentors(Long menteeId) {
         return connectionRepository.findByMenteeIdAndStatus(menteeId, MentorConnection.ConnectionStatus.ACCEPTED)
-                .stream().map(ConnectionResponse::from).toList();
+                .stream().map(c -> ConnectionResponse.from(c, menteeId)).toList();
     }
 
     private MentorConnection findAndValidate(Long mentorId, Long connectionId, boolean requireMentor) {

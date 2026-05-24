@@ -6,6 +6,8 @@ import com.example.pitchmateserver.common.exception.ErrorCode;
 import com.example.pitchmateserver.common.storage.S3StorageService;
 import com.example.pitchmateserver.connection.entity.MentorConnection;
 import com.example.pitchmateserver.connection.repository.ConnectionRepository;
+import com.example.pitchmateserver.evaluation.entity.Evaluation;
+import com.example.pitchmateserver.evaluation.repository.EvaluationRepository;
 import com.example.pitchmateserver.user.entity.User;
 import com.example.pitchmateserver.user.service.UserService;
 import com.example.pitchmateserver.video.dto.VideoResponse;
@@ -19,6 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
@@ -31,17 +34,20 @@ public class VideoService {
     private final AnalysisService analysisService;
     private final S3StorageService storageService;
     private final ConnectionRepository connectionRepository;
+    private final EvaluationRepository evaluationRepository;
 
     public VideoService(VideoRepository videoRepository,
                         UserService userService,
                         @Lazy AnalysisService analysisService,
                         S3StorageService storageService,
-                        ConnectionRepository connectionRepository) {
+                        ConnectionRepository connectionRepository,
+                        EvaluationRepository evaluationRepository) {
         this.videoRepository = videoRepository;
         this.userService = userService;
         this.analysisService = analysisService;
         this.storageService = storageService;
         this.connectionRepository = connectionRepository;
+        this.evaluationRepository = evaluationRepository;
     }
 
     @Transactional
@@ -81,8 +87,6 @@ public class VideoService {
                 .requestedMentor(requestedMentor)
                 .build());
 
-        // 영상 업로드 즉시 AI 분석 + 평가 + 피드백 자동 시작 (비동기, Gemini 업로드 1회)
-        // 히스토리(세션) 생성은 AI 분석 완료 후에 수행됨 (SRS 3.6.1)
         analysisService.requestAnalysis(video.getId());
 
         return VideoResponse.from(video);
@@ -95,9 +99,22 @@ public class VideoService {
                 .toList();
     }
 
+    // 피드백 미완료 영상만 반환 (멘토 대시보드 목록용)
     public List<VideoResponse> getRequestedVideos(Long mentorId) {
-        return videoRepository.findByRequestedMentorIdOrderByCreatedAtDesc(mentorId)
-                .stream()
+        List<Video> requestedVideos = videoRepository.findByRequestedMentorIdOrderByCreatedAtDesc(mentorId);
+        Set<Long> completedVideoIds = getCompletedVideoIds(requestedVideos);
+        return requestedVideos.stream()
+                .filter(v -> !completedVideoIds.contains(v.getId()))
+                .map(VideoResponse::from)
+                .toList();
+    }
+
+    // 피드백 완료 영상만 반환 (멘토 피드백 히스토리용)
+    public List<VideoResponse> getCompletedRequestedVideos(Long mentorId) {
+        List<Video> requestedVideos = videoRepository.findByRequestedMentorIdOrderByCreatedAtDesc(mentorId);
+        Set<Long> completedVideoIds = getCompletedVideoIds(requestedVideos);
+        return requestedVideos.stream()
+                .filter(v -> completedVideoIds.contains(v.getId()))
                 .map(VideoResponse::from)
                 .toList();
     }
@@ -132,6 +149,13 @@ public class VideoService {
         return video;
     }
 
+    private Set<Long> getCompletedVideoIds(List<Video> videos) {
+        List<Long> videoIds = videos.stream().map(Video::getId).toList();
+        if (videoIds.isEmpty()) return Set.of();
+        return evaluationRepository.findByVideoIdInAndType(videoIds, Evaluation.EvaluationType.MANUAL)
+                .stream().map(e -> e.getVideo().getId()).collect(Collectors.toSet());
+    }
+
     private void validateFileFormat(MultipartFile file) {
         String originalFilename = file.getOriginalFilename();
         if (originalFilename == null || !originalFilename.contains(".")) {
@@ -142,5 +166,4 @@ public class VideoService {
             throw new BusinessException(ErrorCode.INVALID_FILE_FORMAT);
         }
     }
-
 }

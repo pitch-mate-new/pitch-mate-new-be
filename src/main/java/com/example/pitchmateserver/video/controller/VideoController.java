@@ -84,10 +84,9 @@ public class VideoController {
     }
 
     @Operation(
-            summary = "멘토에게 요청된 영상 목록 조회",
+            summary = "멘토에게 요청된 영상 목록 조회 (피드백 대기 중)",
             description = """
-                    내가 멘토로 지정된 영상 목록을 최신순으로 반환합니다. 멘토 계정에서 사용합니다.
-                    응답의 `ownerId`, `ownerNickname`으로 어느 멘티의 영상인지 확인할 수 있습니다.
+                    내가 멘토로 지정됐지만 아직 피드백을 완료하지 않은 영상 목록을 최신순으로 반환합니다.
 
                     **에러 응답**
                     - 401: 인증 토큰 없음 또는 만료
@@ -96,6 +95,20 @@ public class VideoController {
     @GetMapping("/requested")
     public ResponseEntity<ApiResponse<List<VideoResponse>>> getRequestedVideos(@CurrentUser Long userId) {
         return ResponseEntity.ok(ApiResponse.ok(videoService.getRequestedVideos(userId)));
+    }
+
+    @Operation(
+            summary = "멘토 피드백 완료 영상 목록 조회 (히스토리)",
+            description = """
+                    내가 멘토로서 피드백을 완료한 영상 목록을 최신순으로 반환합니다.
+
+                    **에러 응답**
+                    - 401: 인증 토큰 없음 또는 만료
+                    """
+    )
+    @GetMapping("/requested/completed")
+    public ResponseEntity<ApiResponse<List<VideoResponse>>> getCompletedRequestedVideos(@CurrentUser Long userId) {
+        return ResponseEntity.ok(ApiResponse.ok(videoService.getCompletedRequestedVideos(userId)));
     }
 
     @Operation(

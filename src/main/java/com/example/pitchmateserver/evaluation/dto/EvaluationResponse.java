@@ -30,8 +30,8 @@ public class EvaluationResponse {
                 .evaluatorId(evaluation.getEvaluator() != null ? evaluation.getEvaluator().getId() : null)
                 .evaluatorNickname(evaluation.getEvaluator() != null ? evaluation.getEvaluator().getNickname() : "AI")
                 .type(evaluation.getType().name())
-                .totalScore(evaluation.getTotalScore())
-                .maxTotalScore(evaluation.getMaxTotalScore())
+                .totalScore(evaluation.getNormalizedScore())
+                .maxTotalScore(100)
                 .comment(evaluation.getComment())
                 .scores(evaluation.getScores().stream().map(ScoreResponse::from).toList())
                 .createdAt(evaluation.getCreatedAt())
@@ -44,6 +44,7 @@ public class EvaluationResponse {
         private Long rubricId;
         private String rubricTitle;
         private Integer score;
+        private Integer maxScore;
         private String comment;
 
         public static ScoreResponse from(EvaluationScore s) {
@@ -51,6 +52,7 @@ public class EvaluationResponse {
                     .rubricId(s.getRubric().getId())
                     .rubricTitle(s.getRubric().getTitle())
                     .score(s.getScore())
+                    .maxScore(s.getRubric().getMaxScore())
                     .comment(s.getComment())
                     .build();
         }

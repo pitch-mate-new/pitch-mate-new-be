@@ -57,6 +57,12 @@ public class Evaluation {
         this.maxTotalScore = maxTotalScore;
     }
 
+    public int getNormalizedScore() {
+        return (maxTotalScore != null && maxTotalScore > 0)
+                ? (int) Math.round(totalScore * 100.0 / maxTotalScore)
+                : 0;
+    }
+
     public void updateComment(String comment) {
         this.comment = comment;
     }

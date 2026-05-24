@@ -14,51 +14,32 @@ import java.util.List;
 public class SessionDetailResponse {
 
     private VideoResponse video;
-    private Feedbacks feedbacks;
-    private Evaluations evaluations;
-    private AnalysisResponse analysis;
-    private CategoryScores categoryScores;
+    private String mentorFeedbackStatus; // NOT_REQUESTED, PENDING, COMPLETED
+    private AiData ai;
+    private MentorData mentor;
 
     @Getter
     @Builder
-    public static class Feedbacks {
-        private List<FeedbackResponse> ai;
-        private List<FeedbackResponse> mentor;
+    public static class AiData {
+        private AnalysisResponse analysis;
+        private List<FeedbackResponse> feedbacks;
+        private EvaluationResponse evaluation;
+        private CategoryScores categoryScores;
     }
 
     @Getter
     @Builder
-    public static class Evaluations {
-        private EvaluationResponse ai;
-        private EvaluationResponse mentor;
+    public static class MentorData {
+        private List<FeedbackResponse> feedbacks;
+        private EvaluationResponse evaluation;
+        private CategoryScores categoryScores;
     }
 
     @Getter
     @Builder
     public static class CategoryScores {
-        private CategoryAvg ai;
-        private CategoryAvg mentor;
-
-        @Getter
-        @Builder
-        public static class CategoryAvg {
-            private Double speechAvg;
-            private Double nonVerbalAvg;
-            private Double deliveryAvg;
-        }
-    }
-
-    public static SessionDetailResponse of(VideoResponse video,
-                                           Feedbacks feedbacks,
-                                           Evaluations evaluations,
-                                           AnalysisResponse analysis,
-                                           CategoryScores categoryScores) {
-        return SessionDetailResponse.builder()
-                .video(video)
-                .feedbacks(feedbacks)
-                .evaluations(evaluations)
-                .analysis(analysis)
-                .categoryScores(categoryScores)
-                .build();
+        private Double speechAvg;
+        private Double nonVerbalAvg;
+        private Double deliveryAvg;
     }
 }

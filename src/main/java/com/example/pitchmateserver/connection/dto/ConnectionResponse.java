@@ -12,28 +12,41 @@ import java.time.LocalDateTime;
 public class ConnectionResponse {
 
     private Long connectionId;
-    private Long mentorId;
-    private String mentorNickname;
-    private String mentorIntro;
-    private Long menteeId;
-    private String menteeNickname;
-    private String menteeProfileImage;
-    private String menteeIntro;
+    private Long userId;
+    private String nickname;
+    private String intro;
+    private String profileImage;
     @Schema(description = "연결 상태", allowableValues = {"PENDING", "ACCEPTED", "REJECTED"})
-    private String status;
+    private String connectionStatus;
     private LocalDateTime createdAt;
 
-    public static ConnectionResponse from(MentorConnection connection) {
+    public static ConnectionResponse from(MentorConnection connection, Long currentUserId) {
+        boolean currentUserIsMentee = connection.getMentee().getId().equals(currentUserId);
+
+        Long otherUserId;
+        String nickname;
+        String intro;
+        String profileImage;
+
+        if (currentUserIsMentee) {
+            otherUserId = connection.getMentor().getId();
+            nickname = connection.getMentor().getNickname();
+            intro = connection.getMentor().getBio();
+            profileImage = connection.getMentor().getProfileImageUrl();
+        } else {
+            otherUserId = connection.getMentee().getId();
+            nickname = connection.getMentee().getNickname();
+            intro = connection.getMenteeIntro();
+            profileImage = connection.getMentee().getProfileImageUrl();
+        }
+
         return ConnectionResponse.builder()
                 .connectionId(connection.getId())
-                .mentorId(connection.getMentor().getId())
-                .mentorNickname(connection.getMentor().getNickname())
-                .mentorIntro(connection.getMentor().getBio())
-                .menteeId(connection.getMentee().getId())
-                .menteeNickname(connection.getMentee().getNickname())
-                .menteeProfileImage(connection.getMentee().getProfileImageUrl())
-                .menteeIntro(connection.getMenteeIntro())
-                .status(connection.getStatus().name())
+                .userId(otherUserId)
+                .nickname(nickname)
+                .intro(intro)
+                .profileImage(profileImage)
+                .connectionStatus(connection.getStatus().name())
                 .createdAt(connection.getCreatedAt())
                 .build();
     }
