@@ -32,8 +32,8 @@ public class EvaluationController {
                     ```json
                     {
                       "scores": [
-                        { "rubricId": 1, "score": 8, "comment": "발음이 명확합니다." },
-                        { "rubricId": 2, "score": 7, "comment": "속도가 약간 빠릅니다." }
+                        { "rubricId": 1, "score": 8 },
+                        { "rubricId": 2, "score": 7 }
                       ],
                       "comment": "전반적으로 좋은 발표였습니다."
                     }
