@@ -74,11 +74,20 @@ public class HistoryController {
                     영상 ID로 해당 연습 기록의 상세 정보를 반환합니다.
 
                     **응답 구조**
-                    - `video`: 영상 정보 (ownerId, ownerNickname, practiceType 포함)
-                    - `feedbacks`: 구간별 피드백 목록 (AI + 멘토 MANUAL 포함, 시작시간 순)
-                    - `evaluations`: 루브릭 평가 목록 (AI + 멘토 MANUAL 포함, totalScore/maxTotalScore/comment 포함)
-                    - `analysis`: AI 분석 결과 (말속도, 침묵비율, 필러워드 등)
-                    - `categoryScores`: 루브릭 카테고리별 평균 (speechAvg, nonVerbalAvg, deliveryAvg)
+                    - `video`: 영상 정보
+                    - `mentorFeedbackStatus`: 멘토 피드백 상태
+                      - `NOT_REQUESTED`: 멘토 지정 없이 업로드
+                      - `PENDING`: 멘토 지정했지만 피드백 미완료
+                      - `COMPLETED`: 멘토 피드백 완료
+                    - `ai`: AI 분석/평가/피드백
+                      - `analysis`: 말속도, 침묵비율, 필러워드 등
+                      - `feedbacks`: 구간별 AI 피드백 목록
+                      - `evaluation`: AI 루브릭 평가 (totalScore/100, scores 배열)
+                      - `categoryScores`: 카테고리별 평균 (speechAvg, nonVerbalAvg, deliveryAvg)
+                    - `mentor`: 멘토 평가/피드백 (피드백 미완료 시 각 필드 null)
+                      - `feedbacks`: 구간별 멘토 피드백 목록
+                      - `evaluation`: 멘토 루브릭 평가
+                      - `categoryScores`: 카테고리별 평균
 
                     **에러 응답**
                     - 401: 인증 토큰 없음 또는 만료

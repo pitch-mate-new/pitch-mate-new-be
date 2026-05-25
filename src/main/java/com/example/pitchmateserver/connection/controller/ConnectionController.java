@@ -78,7 +78,8 @@ public class ConnectionController {
             summary = "내 연결 목록 조회",
             description = """
                     로그인한 사용자의 연결 목록을 최신순으로 반환합니다.
-                    멘토는 멘티 연결 목록, 멘티는 멘토 연결 목록을 반환합니다.
+                    멘토는 멘티 목록, 멘티는 멘토 목록을 반환합니다.
+                    응답의 `userId`, `nickname`, `intro`, `profileImage`는 상대방(멘토 또는 멘티) 정보입니다.
 
                     **에러 응답**
                     - 401: 인증 토큰 없음 또는 만료
