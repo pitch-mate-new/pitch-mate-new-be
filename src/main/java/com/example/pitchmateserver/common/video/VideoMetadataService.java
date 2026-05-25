@@ -1,18 +1,12 @@
 package com.example.pitchmateserver.common.video;
 
 import lombok.extern.slf4j.Slf4j;
-import net.bramp.ffmpeg.FFmpeg;
-import net.bramp.ffmpeg.FFmpegExecutor;
-import net.bramp.ffmpeg.FFprobe;
-import net.bramp.ffmpeg.builder.FFmpegBuilder;
-import net.bramp.ffmpeg.probe.FFmpegProbeResult;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -26,40 +20,52 @@ public class VideoMetadataService {
 
     public Integer extractDuration(File videoFile) {
         try {
-            FFprobe ffprobe = new FFprobe(ffprobePath);
-            FFmpegProbeResult result = ffprobe.probe(videoFile.getAbsolutePath());
-            double duration = result.getFormat().duration;
-            return (int) Math.round(duration);
+            ProcessBuilder pb = new ProcessBuilder(
+                    ffprobePath,
+                    "-v", "quiet",
+                    "-show_entries", "format=duration",
+                    "-of", "default=noprint_wrappers=1:nokey=1",
+                    videoFile.getAbsolutePath()
+            );
+            pb.redirectErrorStream(true);
+            Process process = pb.start();
+            String output = new String(process.getInputStream().readAllBytes()).trim();
+            process.waitFor();
+            if (!output.isEmpty() && !output.equals("N/A")) {
+                return (int) Math.round(Double.parseDouble(output));
+            }
         } catch (Exception e) {
             log.warn("영상 길이 추출 실패: {}", e.getMessage());
-            return null;
         }
+        return null;
     }
 
     public byte[] extractThumbnail(File videoFile) {
         File thumbnailFile = null;
         try {
-            FFmpeg ffmpeg = new FFmpeg(ffmpegPath);
-            FFprobe ffprobe = new FFprobe(ffprobePath);
-
             thumbnailFile = File.createTempFile("thumb_", ".jpg");
-
-            FFmpegBuilder builder = new FFmpegBuilder()
-                    .setInput(videoFile.getAbsolutePath())
-                    .overrideOutputFiles(true)
-                    .addOutput(thumbnailFile.getAbsolutePath())
-                    .setFrames(1)
-                    .setStartOffset(1, TimeUnit.SECONDS)
-                    .done();
-
-            new FFmpegExecutor(ffmpeg, ffprobe).createJob(builder).run();
-            return Files.readAllBytes(thumbnailFile.toPath());
+            ProcessBuilder pb = new ProcessBuilder(
+                    ffmpegPath,
+                    "-ss", "00:00:01",
+                    "-i", videoFile.getAbsolutePath(),
+                    "-frames:v", "1",
+                    "-q:v", "2",
+                    "-y",
+                    thumbnailFile.getAbsolutePath()
+            );
+            pb.redirectErrorStream(true);
+            Process process = pb.start();
+            process.getInputStream().readAllBytes(); // consume output
+            process.waitFor();
+            if (thumbnailFile.exists() && thumbnailFile.length() > 0) {
+                return Files.readAllBytes(thumbnailFile.toPath());
+            }
         } catch (Exception e) {
             log.warn("썸네일 추출 실패: {}", e.getMessage());
-            return null;
         } finally {
             if (thumbnailFile != null) thumbnailFile.delete();
         }
+        return null;
     }
 
     public File toTempFile(byte[] bytes, String extension) throws IOException {
