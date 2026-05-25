@@ -57,7 +57,6 @@ public class EvaluationService {
                             .evaluation(evaluation)
                             .rubric(rubric)
                             .score(cappedScore)
-                            .comment(sr.getComment())
                             .build();
                 })
                 .toList();

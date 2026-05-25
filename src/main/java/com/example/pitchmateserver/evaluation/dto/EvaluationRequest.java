@@ -17,6 +17,5 @@ public class EvaluationRequest {
     public static class RubricScoreRequest {
         private Long rubricId;
         private Integer score;
-        private String comment;
     }
 }
