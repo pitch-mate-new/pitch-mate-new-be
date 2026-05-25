@@ -6,6 +6,7 @@ import com.example.pitchmateserver.common.exception.ErrorCode;
 import com.example.pitchmateserver.common.storage.S3StorageService;
 import com.example.pitchmateserver.connection.entity.MentorConnection;
 import com.example.pitchmateserver.connection.repository.ConnectionRepository;
+import com.example.pitchmateserver.common.video.VideoMetadataService;
 import com.example.pitchmateserver.evaluation.entity.Evaluation;
 import com.example.pitchmateserver.evaluation.repository.EvaluationRepository;
 import com.example.pitchmateserver.user.entity.User;
@@ -14,15 +15,18 @@ import com.example.pitchmateserver.video.dto.VideoResponse;
 import com.example.pitchmateserver.video.dto.VideoUpdateRequest;
 import com.example.pitchmateserver.video.entity.Video;
 import com.example.pitchmateserver.video.repository.VideoRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @Transactional(readOnly = true)
 public class VideoService {
@@ -35,19 +39,22 @@ public class VideoService {
     private final S3StorageService storageService;
     private final ConnectionRepository connectionRepository;
     private final EvaluationRepository evaluationRepository;
+    private final VideoMetadataService videoMetadataService;
 
     public VideoService(VideoRepository videoRepository,
                         UserService userService,
                         @Lazy AnalysisService analysisService,
                         S3StorageService storageService,
                         ConnectionRepository connectionRepository,
-                        EvaluationRepository evaluationRepository) {
+                        EvaluationRepository evaluationRepository,
+                        VideoMetadataService videoMetadataService) {
         this.videoRepository = videoRepository;
         this.userService = userService;
         this.analysisService = analysisService;
         this.storageService = storageService;
         this.connectionRepository = connectionRepository;
         this.evaluationRepository = evaluationRepository;
+        this.videoMetadataService = videoMetadataService;
     }
 
     @Transactional
@@ -61,6 +68,29 @@ public class VideoService {
         String thumbnailUrl = null;
         if (thumbnailFile != null && !thumbnailFile.isEmpty()) {
             thumbnailUrl = storageService.uploadFile(thumbnailFile);
+        }
+
+        // 프론트에서 안 보내면 FFmpeg으로 자동 추출
+        if (thumbnailUrl == null || durationSeconds == null) {
+            File tempVideo = null;
+            try {
+                String ext = "." + file.getOriginalFilename().substring(file.getOriginalFilename().lastIndexOf('.') + 1).toLowerCase();
+                tempVideo = videoMetadataService.toTempFile(file.getBytes(), ext);
+
+                if (durationSeconds == null) {
+                    durationSeconds = videoMetadataService.extractDuration(tempVideo);
+                }
+                if (thumbnailUrl == null) {
+                    byte[] thumbBytes = videoMetadataService.extractThumbnail(tempVideo);
+                    if (thumbBytes != null) {
+                        thumbnailUrl = storageService.uploadBytes(thumbBytes, ".jpg", "image/jpeg");
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("영상 메타데이터 자동 추출 실패: {}", e.getMessage());
+            } finally {
+                if (tempVideo != null) tempVideo.delete();
+            }
         }
 
         String defaultTitle = videoType == Video.VideoType.RECORD

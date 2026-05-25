@@ -61,6 +61,26 @@ public class S3StorageService {
         }
     }
 
+    public String uploadBytes(byte[] bytes, String extension, String contentType) {
+        String key = UUID.randomUUID() + extension;
+        try {
+            s3Client.putObject(
+                    PutObjectRequest.builder()
+                            .bucket(bucket)
+                            .key(key)
+                            .contentType(contentType)
+                            .build(),
+                    RequestBody.fromBytes(bytes)
+            );
+            String publicUrl = String.format("https://%s.s3.%s.amazonaws.com/%s", bucket, region, key);
+            log.info("S3 업로드 완료: {}", publicUrl);
+            return publicUrl;
+        } catch (Exception e) {
+            log.error("S3 업로드 실패: {}", e.getMessage());
+            throw new BusinessException(ErrorCode.FILE_UPLOAD_FAILED);
+        }
+    }
+
     public byte[] downloadFile(String publicUrl) {
         try {
             String key = publicUrl.substring(publicUrl.lastIndexOf('/') + 1);
