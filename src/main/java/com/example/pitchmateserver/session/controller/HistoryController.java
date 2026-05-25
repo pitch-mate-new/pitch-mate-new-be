@@ -51,7 +51,9 @@ public class HistoryController {
                     두 영상의 루브릭 점수와 카테고리별 평균을 비교합니다.
 
                     **응답 주요 필드**
-                    - `session1`, `session2`: 각 영상의 기본 정보 (videoId, title, totalScore 등)
+                    - `session1`, `session2`: 각 영상의 기본 정보 (videoId, title, totalScore, mentorFeedbackStatus 등)
+                      - `mentorFeedbackStatus`: `NOT_REQUESTED` / `PENDING` / `COMPLETED`
+                      - 둘 다 `COMPLETED`일 때만 멘토 평가 비교 가능
                     - `evaluationScores`: 루브릭별 점수 비교
                     - `categoryData`: 카테고리별 평균 비교 (speechAvg, nonVerbalAvg, deliveryAvg)
                     - `session1OverallComment`, `session2OverallComment`: AI 총평

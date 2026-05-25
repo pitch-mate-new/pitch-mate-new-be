@@ -131,6 +131,9 @@ public class SessionService {
         String comment1 = ai1.isEmpty() ? null : ai1.get(0).getComment();
         String comment2 = ai2.isEmpty() ? null : ai2.get(0).getComment();
 
+        String mentorStatus1 = resolveMentorFeedbackStatus(s1.getVideo(), mentor1);
+        String mentorStatus2 = resolveMentorFeedbackStatus(s2.getVideo(), mentor2);
+
         return SessionCompareResponse.builder()
                 .session1(SessionCompareResponse.CompareSessionInfo.builder()
                         .videoId(s1.getVideo().getId())
@@ -138,6 +141,7 @@ public class SessionService {
                         .totalScore(score1)
                         .durationSeconds(s1.getVideo().getDurationSeconds())
                         .createdAt(s1.getCreatedAt())
+                        .mentorFeedbackStatus(mentorStatus1)
                         .build())
                 .session2(SessionCompareResponse.CompareSessionInfo.builder()
                         .videoId(s2.getVideo().getId())
@@ -145,6 +149,7 @@ public class SessionService {
                         .totalScore(score2)
                         .durationSeconds(s2.getVideo().getDurationSeconds())
                         .createdAt(s2.getCreatedAt())
+                        .mentorFeedbackStatus(mentorStatus2)
                         .build())
                 .evaluationScores(scoreCompare)
                 .categoryData(categoryCompare)
@@ -256,6 +261,11 @@ public class SessionService {
                     );
                 })
                 .toList();
+    }
+
+    private String resolveMentorFeedbackStatus(Video video, List<Evaluation> mentorEvals) {
+        if (video.getRequestedMentor() == null) return "NOT_REQUESTED";
+        return mentorEvals.isEmpty() ? "PENDING" : "COMPLETED";
     }
 
     private Session findSessionByVideoId(Long videoId) {

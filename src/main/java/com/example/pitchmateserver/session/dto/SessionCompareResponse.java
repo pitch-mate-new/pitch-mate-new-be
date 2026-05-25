@@ -31,6 +31,7 @@ public class SessionCompareResponse {
         private Integer totalScore;
         private Integer durationSeconds;
         private LocalDateTime createdAt;
+        private String mentorFeedbackStatus;
     }
 
     @Getter
