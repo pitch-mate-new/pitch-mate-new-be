@@ -155,14 +155,17 @@ public class GeminiService {
     /**
      * AI 구간 피드백 생성
      */
-    public List<GeminiFeedbackResult> generateFeedbacks(String fileUri, String description) {
+    public List<GeminiFeedbackResult> generateFeedbacks(String fileUri, String description, Integer durationSeconds) {
         String descriptionContext = (description != null && !description.isBlank())
                 ? "\n영상 설명 (참고): " + description + "\n"
+                : "";
+        String durationContext = (durationSeconds != null && durationSeconds > 0)
+                ? "\n영상 총 길이: " + durationSeconds + "초. 타임스탬프는 반드시 0~" + durationSeconds + "초 범위 안에서만 지정해.\n"
                 : "";
         String prompt = """
                 이 발표/면접 연습 영상을 보고 개선이 필요한 구간에 대해 구체적인 피드백을 3-5개 작성해줘.
                 아래 JSON 배열 형식으로만 응답해. 다른 텍스트는 절대 포함하지 마.
-                """ + descriptionContext + """
+                """ + descriptionContext + durationContext + """
 
                 [
                   {
@@ -183,17 +186,19 @@ public class GeminiService {
             List<GeminiFeedbackResult> results = new ArrayList<>();
             if (arrayNode.isArray()) {
                 for (JsonNode item : arrayNode) {
-                    results.add(new GeminiFeedbackResult(
-                            item.path("startTimeSeconds").asDouble(0.0),
-                            item.path("endTimeSeconds").asDouble(30.0),
-                            item.path("content").asText("피드백을 생성했습니다.")
-                    ));
+                    double start = item.path("startTimeSeconds").asDouble(0.0);
+                    double end = item.path("endTimeSeconds").asDouble(start + 10.0);
+                    if (durationSeconds != null && durationSeconds > 0) {
+                        start = Math.min(start, durationSeconds);
+                        end = Math.min(end, durationSeconds);
+                    }
+                    results.add(new GeminiFeedbackResult(start, end, item.path("content").asText("피드백을 생성했습니다.")));
                 }
             }
             return results;
         } catch (Exception e) {
             log.error("Gemini 피드백 생성 실패: {}", e.getMessage());
-            return GeminiFeedbackResult.fallback();
+            return GeminiFeedbackResult.fallback(durationSeconds);
         }
     }
 
@@ -323,11 +328,13 @@ public class GeminiService {
             Double endTimeSeconds,
             String content
     ) {
-        public static List<GeminiFeedbackResult> fallback() {
+        public static List<GeminiFeedbackResult> fallback(Integer durationSeconds) {
+            int d = (durationSeconds != null && durationSeconds > 0) ? durationSeconds : 30;
+            double third = d / 3.0;
             return List.of(
-                    new GeminiFeedbackResult(0.0, 30.0, "도입부에서 명확한 주제 제시가 필요합니다."),
-                    new GeminiFeedbackResult(60.0, 90.0, "이 구간에서 말하기 속도를 조절해보세요."),
-                    new GeminiFeedbackResult(120.0, 150.0, "결론 부분에 핵심 내용 요약을 추가해주세요.")
+                    new GeminiFeedbackResult(0.0, Math.min(third, d), "도입부에서 명확한 주제 제시가 필요합니다."),
+                    new GeminiFeedbackResult(Math.min(third, d), Math.min(third * 2, d), "이 구간에서 말하기 속도를 조절해보세요."),
+                    new GeminiFeedbackResult(Math.min(third * 2, d), (double) d, "결론 부분에 핵심 내용 요약을 추가해주세요.")
             );
         }
     }

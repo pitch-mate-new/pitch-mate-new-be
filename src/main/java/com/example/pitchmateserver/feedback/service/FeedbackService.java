@@ -89,11 +89,11 @@ public class FeedbackService {
         List<GeminiService.GeminiFeedbackResult> geminiResults;
         try {
             if (fileUri == null) throw new IllegalArgumentException("fileUri 없음, fallback 사용");
-            geminiResults = geminiService.generateFeedbacks(fileUri, video.getDescription());
+            geminiResults = geminiService.generateFeedbacks(fileUri, video.getDescription(), video.getDurationSeconds());
             log.info("Gemini AI 피드백 생성 완료: {}개", geminiResults.size());
         } catch (Exception e) {
             log.error("Gemini AI 피드백 실패, 기본값 사용: {}", e.getMessage());
-            geminiResults = GeminiService.GeminiFeedbackResult.fallback();
+            geminiResults = GeminiService.GeminiFeedbackResult.fallback(video.getDurationSeconds());
         }
 
         List<Feedback> feedbacks = geminiResults.stream()
