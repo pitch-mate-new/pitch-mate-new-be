@@ -92,21 +92,21 @@ public class AnalysisService {
             analysisRepository.save(analysis);
             log.info("분석 완료: analysisId={}", analysisId);
 
-            // AI 분석 완료 후 히스토리(세션) 생성 (SRS 3.6.1)
-            try {
-                Video completedVideo = videoService.findVideo(videoId);
-                sessionService.createSession(completedVideo.getUser(), completedVideo);
-                log.info("세션 생성 완료: videoId={}", videoId);
-            } catch (Exception ex) {
-                log.error("세션 생성 실패: videoId={}, error={}", videoId, ex.getMessage());
-            }
-
         } catch (Exception e) {
             log.error("분석 실패: analysisId={}, error={}", analysisId, e.getMessage());
             analysisRepository.findById(analysisId).ifPresent(a -> {
                 a.fail(e.getMessage());
                 analysisRepository.save(a);
             });
+        }
+
+        // 세션 생성은 분석 성공 여부와 무관하게 항상 실행
+        try {
+            Video completedVideo = videoService.findVideo(videoId);
+            sessionService.createSession(completedVideo.getUser(), completedVideo);
+            log.info("세션 생성 완료: videoId={}", videoId);
+        } catch (Exception ex) {
+            log.error("세션 생성 실패: videoId={}, error={}", videoId, ex.getMessage());
         }
 
         // 3. 같은 fileUri로 AI 평가 생성 (분석 성공 여부와 무관하게 시도)
