@@ -5,7 +5,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
 
 @Slf4j
@@ -68,9 +67,4 @@ public class VideoMetadataService {
         return null;
     }
 
-    public File toTempFile(byte[] bytes, String extension) throws IOException {
-        File temp = File.createTempFile("video_", extension);
-        Files.write(temp.toPath(), bytes);
-        return temp;
-    }
 }

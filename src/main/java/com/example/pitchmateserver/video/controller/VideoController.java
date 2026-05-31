@@ -115,15 +115,19 @@ public class VideoController {
             summary = "영상 상세 조회",
             description = """
                     영상 ID로 특정 영상의 상세 정보를 조회합니다.
+                    영상 소유자이거나 해당 영상에 피드백을 요청받은 멘토만 조회할 수 있습니다.
 
                     **에러 응답**
                     - 401: 인증 토큰 없음 또는 만료
+                    - 403 (code 4009): 본인 영상이 아니거나 피드백 요청받은 멘토가 아님
                     - 404 (code 4008): 영상을 찾을 수 없음
                     """
     )
     @GetMapping("/{videoId}")
-    public ResponseEntity<ApiResponse<VideoResponse>> getVideo(@PathVariable Long videoId) {
-        return ResponseEntity.ok(ApiResponse.ok(videoService.getVideo(videoId)));
+    public ResponseEntity<ApiResponse<VideoResponse>> getVideo(
+            @CurrentUser Long userId,
+            @PathVariable Long videoId) {
+        return ResponseEntity.ok(ApiResponse.ok(videoService.getVideo(userId, videoId)));
     }
 
     @Operation(

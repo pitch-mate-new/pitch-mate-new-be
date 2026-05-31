@@ -39,6 +39,10 @@ public class EvaluationService {
         User mentor = userService.findUser(mentorId);
         Video video = videoService.findVideo(videoId);
 
+        if (video.getRequestedMentor() == null || !video.getRequestedMentor().getId().equals(mentorId)) {
+            throw new BusinessException(ErrorCode.VIDEO_ACCESS_DENIED);
+        }
+
         Evaluation evaluation = evaluationRepository.save(Evaluation.builder()
                 .video(video)
                 .evaluator(mentor)

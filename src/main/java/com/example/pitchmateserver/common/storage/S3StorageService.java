@@ -15,6 +15,7 @@ import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
+import java.io.IOException;
 import java.util.UUID;
 
 @Slf4j
@@ -47,14 +48,16 @@ public class S3StorageService {
                             .bucket(bucket)
                             .key(key)
                             .contentType(contentType)
+                            .contentLength(file.getSize())
                             .build(),
-                    RequestBody.fromBytes(file.getBytes())
+                    RequestBody.fromInputStream(file.getInputStream(), file.getSize())
             );
-
             String publicUrl = String.format("https://%s.s3.%s.amazonaws.com/%s", bucket, region, key);
             log.info("S3 업로드 완료: {}", publicUrl);
             return publicUrl;
-
+        } catch (IOException e) {
+            log.error("S3 업로드 실패 (파일 읽기 오류): {}", e.getMessage());
+            throw new BusinessException(ErrorCode.FILE_UPLOAD_FAILED);
         } catch (Exception e) {
             log.error("S3 업로드 실패: {}", e.getMessage());
             throw new BusinessException(ErrorCode.FILE_UPLOAD_FAILED);

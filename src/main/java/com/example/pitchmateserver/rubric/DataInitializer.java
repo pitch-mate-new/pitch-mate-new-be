@@ -23,7 +23,7 @@ public class DataInitializer implements ApplicationRunner {
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
-        if (rubricRepository.count() == 20) return;
+        if (rubricRepository.count() >= 20) return;
 
         // 루브릭을 참조하는 데이터 먼저 삭제 (FK 제약 해제)
         // evaluation_scores는 Evaluation CASCADE ALL로 함께 삭제됨

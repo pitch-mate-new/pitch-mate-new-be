@@ -37,6 +37,10 @@ public class FeedbackService {
         User mentor = userService.findUser(mentorId);
         Video video = videoService.findVideo(videoId);
 
+        if (video.getRequestedMentor() == null || !video.getRequestedMentor().getId().equals(mentorId)) {
+            throw new BusinessException(ErrorCode.VIDEO_ACCESS_DENIED);
+        }
+
         Rubric rubric = request.getRubricId() != null
                 ? rubricRepository.findById(request.getRubricId())
                     .orElseThrow(() -> new BusinessException(ErrorCode.RUBRIC_NOT_FOUND))

@@ -75,7 +75,8 @@ public class VideoService {
             File tempVideo = null;
             try {
                 String ext = "." + file.getOriginalFilename().substring(file.getOriginalFilename().lastIndexOf('.') + 1).toLowerCase();
-                tempVideo = videoMetadataService.toTempFile(file.getBytes(), ext);
+                tempVideo = File.createTempFile("video_", ext);
+                file.transferTo(tempVideo.toPath());
 
                 if (durationSeconds == null) {
                     durationSeconds = videoMetadataService.extractDuration(tempVideo);
@@ -149,8 +150,15 @@ public class VideoService {
                 .toList();
     }
 
-    public VideoResponse getVideo(Long videoId) {
-        return VideoResponse.from(findVideo(videoId));
+    public VideoResponse getVideo(Long userId, Long videoId) {
+        Video video = findVideo(videoId);
+        boolean isOwner = video.getUser().getId().equals(userId);
+        boolean isRequestedMentor = video.getRequestedMentor() != null
+                && video.getRequestedMentor().getId().equals(userId);
+        if (!isOwner && !isRequestedMentor) {
+            throw new BusinessException(ErrorCode.VIDEO_ACCESS_DENIED);
+        }
+        return VideoResponse.from(video);
     }
 
     @Transactional
