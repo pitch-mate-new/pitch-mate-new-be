@@ -11,6 +11,7 @@ import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
@@ -98,6 +99,19 @@ public class S3StorageService {
         } catch (Exception e) {
             log.error("S3 다운로드 실패: {}", e.getMessage());
             throw new RuntimeException("영상 파일 다운로드 실패: " + e.getMessage(), e);
+        }
+    }
+
+    public void deleteFile(String publicUrl) {
+        try {
+            String key = publicUrl.substring(publicUrl.lastIndexOf('/') + 1);
+            s3Client.deleteObject(DeleteObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(key)
+                    .build());
+            log.info("S3 삭제 완료: {}", key);
+        } catch (Exception e) {
+            log.warn("S3 삭제 실패 (무시): {}", e.getMessage());
         }
     }
 

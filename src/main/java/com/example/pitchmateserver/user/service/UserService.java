@@ -2,6 +2,7 @@ package com.example.pitchmateserver.user.service;
 
 import com.example.pitchmateserver.ai.entity.Analysis;
 import com.example.pitchmateserver.ai.repository.AnalysisRepository;
+import com.example.pitchmateserver.auth.repository.RefreshTokenRepository;
 import com.example.pitchmateserver.common.exception.BusinessException;
 import com.example.pitchmateserver.common.exception.ErrorCode;
 import com.example.pitchmateserver.common.storage.S3StorageService;
@@ -9,6 +10,8 @@ import com.example.pitchmateserver.connection.entity.MentorConnection;
 import com.example.pitchmateserver.connection.repository.ConnectionRepository;
 import com.example.pitchmateserver.evaluation.entity.Evaluation;
 import com.example.pitchmateserver.evaluation.repository.EvaluationRepository;
+import com.example.pitchmateserver.feedback.repository.FeedbackRepository;
+import com.example.pitchmateserver.session.repository.SessionRepository;
 import com.example.pitchmateserver.user.dto.MenteeDashboardResponse;
 import com.example.pitchmateserver.user.dto.MentorDashboardResponse;
 import com.example.pitchmateserver.user.dto.UserResponse;
@@ -17,6 +20,7 @@ import com.example.pitchmateserver.user.repository.UserRepository;
 import com.example.pitchmateserver.video.entity.Video;
 import com.example.pitchmateserver.video.repository.VideoRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -26,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -37,6 +42,9 @@ public class UserService {
     private final S3StorageService s3StorageService;
     private final ConnectionRepository connectionRepository;
     private final EvaluationRepository evaluationRepository;
+    private final FeedbackRepository feedbackRepository;
+    private final SessionRepository sessionRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
 
     public UserResponse getMyInfo(Long userId) {
         return UserResponse.from(findUser(userId));
@@ -90,6 +98,33 @@ public class UserService {
 
     @Transactional
     public void deleteAccount(Long userId) {
+        // 다른 사람의 영상에서 이 유저를 멘토로 참조하는 FK 해제
+        videoRepository.clearRequestedMentor(userId);
+        feedbackRepository.clearAuthor(userId);
+        evaluationRepository.clearEvaluator(userId);
+
+        // 이 유저 소유 영상들과 자식 데이터 삭제
+        List<Video> myVideos = videoRepository.findByUserIdOrderByCreatedAtDesc(userId);
+        for (Video video : myVideos) {
+            sessionRepository.deleteByVideoId(video.getId());
+            feedbackRepository.deleteByVideoId(video.getId());
+            evaluationRepository.deleteByVideoId(video.getId());
+            analysisRepository.deleteByVideoId(video.getId());
+        }
+        videoRepository.deleteAll(myVideos);
+
+        // S3 파일 삭제 (DB 커밋 후 → 실패해도 유저 삭제에는 영향 없음)
+        for (Video video : myVideos) {
+            try { s3StorageService.deleteFile(video.getVideoUrl()); } catch (Exception e) { log.warn("S3 video 삭제 실패: {}", e.getMessage()); }
+            if (video.getThumbnailUrl() != null) {
+                try { s3StorageService.deleteFile(video.getThumbnailUrl()); } catch (Exception e) { log.warn("S3 thumbnail 삭제 실패: {}", e.getMessage()); }
+            }
+        }
+
+        connectionRepository.deleteByMenteeId(userId);
+        connectionRepository.deleteByMentorId(userId);
+        refreshTokenRepository.deleteByUserId(userId);
+
         userRepository.delete(findUser(userId));
     }
 

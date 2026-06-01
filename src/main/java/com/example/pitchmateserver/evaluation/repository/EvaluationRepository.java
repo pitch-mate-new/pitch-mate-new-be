@@ -2,6 +2,7 @@ package com.example.pitchmateserver.evaluation.repository;
 
 import com.example.pitchmateserver.evaluation.entity.Evaluation;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -22,4 +23,10 @@ public interface EvaluationRepository extends JpaRepository<Evaluation, Long> {
 
     @Query("SELECT e FROM Evaluation e WHERE e.video.id IN :videoIds AND e.type = :type")
     List<Evaluation> findByVideoIdInAndType(@Param("videoIds") List<Long> videoIds, @Param("type") Evaluation.EvaluationType type);
+
+    void deleteByVideoId(Long videoId);
+
+    @Modifying
+    @Query("UPDATE Evaluation e SET e.evaluator = null WHERE e.evaluator.id = :evaluatorId")
+    void clearEvaluator(@Param("evaluatorId") Long evaluatorId);
 }

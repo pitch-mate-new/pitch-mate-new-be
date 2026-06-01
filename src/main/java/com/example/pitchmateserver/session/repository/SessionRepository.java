@@ -17,4 +17,5 @@ public interface SessionRepository extends JpaRepository<Session, Long> {
 
     Optional<Session> findByVideoId(Long videoId);
 
+    void deleteByVideoId(Long videoId);
 }

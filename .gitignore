@@ -48,6 +48,7 @@ uploads/
 *.pdf
 *.docx
 *.docs
+*.md
 KakaoTalk_*
 Screenshot*
 TalkFile*

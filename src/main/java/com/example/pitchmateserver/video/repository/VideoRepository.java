@@ -2,6 +2,7 @@ package com.example.pitchmateserver.video.repository;
 
 import com.example.pitchmateserver.video.entity.Video;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -16,4 +17,8 @@ public interface VideoRepository extends JpaRepository<Video, Long> {
 
     @Query("SELECT AVG(e.totalScore * 100.0 / e.maxTotalScore) FROM Evaluation e WHERE e.video.user.id = :userId AND e.maxTotalScore > 0 AND e.type = 'AI'")
     Double findAverageScoreByUserId(@Param("userId") Long userId);
+
+    @Modifying
+    @Query("UPDATE Video v SET v.requestedMentor = null WHERE v.requestedMentor.id = :mentorId")
+    void clearRequestedMentor(@Param("mentorId") Long mentorId);
 }

@@ -25,4 +25,8 @@ public interface ConnectionRepository extends JpaRepository<MentorConnection, Lo
     long countByMentorIdAndStatus(Long mentorId, MentorConnection.ConnectionStatus status);
 
     long countByMenteeIdAndStatus(Long menteeId, MentorConnection.ConnectionStatus status);
+
+    void deleteByMenteeId(Long menteeId);
+
+    void deleteByMentorId(Long mentorId);
 }

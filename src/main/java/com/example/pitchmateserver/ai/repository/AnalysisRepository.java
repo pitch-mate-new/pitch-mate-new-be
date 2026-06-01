@@ -11,4 +11,6 @@ public interface AnalysisRepository extends JpaRepository<Analysis, Long> {
     boolean existsByVideoId(Long videoId);
     List<Analysis> findByVideoIdIn(List<Long> videoIds);
     long countByVideoUserIdAndStatus(Long userId, Analysis.AnalysisStatus status);
+
+    void deleteByVideoId(Long videoId);
 }

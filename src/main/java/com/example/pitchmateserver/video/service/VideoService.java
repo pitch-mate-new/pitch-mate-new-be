@@ -1,5 +1,6 @@
 package com.example.pitchmateserver.video.service;
 
+import com.example.pitchmateserver.ai.repository.AnalysisRepository;
 import com.example.pitchmateserver.ai.service.AnalysisService;
 import com.example.pitchmateserver.common.exception.BusinessException;
 import com.example.pitchmateserver.common.exception.ErrorCode;
@@ -9,6 +10,8 @@ import com.example.pitchmateserver.connection.repository.ConnectionRepository;
 import com.example.pitchmateserver.common.video.VideoMetadataService;
 import com.example.pitchmateserver.evaluation.entity.Evaluation;
 import com.example.pitchmateserver.evaluation.repository.EvaluationRepository;
+import com.example.pitchmateserver.feedback.repository.FeedbackRepository;
+import com.example.pitchmateserver.session.repository.SessionRepository;
 import com.example.pitchmateserver.user.entity.User;
 import com.example.pitchmateserver.user.service.UserService;
 import com.example.pitchmateserver.video.dto.VideoResponse;
@@ -39,6 +42,9 @@ public class VideoService {
     private final S3StorageService storageService;
     private final ConnectionRepository connectionRepository;
     private final EvaluationRepository evaluationRepository;
+    private final FeedbackRepository feedbackRepository;
+    private final AnalysisRepository analysisRepository;
+    private final SessionRepository sessionRepository;
     private final VideoMetadataService videoMetadataService;
 
     public VideoService(VideoRepository videoRepository,
@@ -47,6 +53,9 @@ public class VideoService {
                         S3StorageService storageService,
                         ConnectionRepository connectionRepository,
                         EvaluationRepository evaluationRepository,
+                        FeedbackRepository feedbackRepository,
+                        AnalysisRepository analysisRepository,
+                        SessionRepository sessionRepository,
                         VideoMetadataService videoMetadataService) {
         this.videoRepository = videoRepository;
         this.userService = userService;
@@ -54,6 +63,9 @@ public class VideoService {
         this.storageService = storageService;
         this.connectionRepository = connectionRepository;
         this.evaluationRepository = evaluationRepository;
+        this.feedbackRepository = feedbackRepository;
+        this.analysisRepository = analysisRepository;
+        this.sessionRepository = sessionRepository;
         this.videoMetadataService = videoMetadataService;
     }
 
@@ -171,7 +183,20 @@ public class VideoService {
     @Transactional
     public void deleteVideo(Long userId, Long videoId) {
         Video video = findVideoWithOwnerCheck(userId, videoId);
+
+        sessionRepository.deleteByVideoId(videoId);
+        feedbackRepository.deleteByVideoId(videoId);
+        evaluationRepository.deleteByVideoId(videoId);
+        analysisRepository.deleteByVideoId(videoId);
+
+        String videoUrl = video.getVideoUrl();
+        String thumbnailUrl = video.getThumbnailUrl();
         videoRepository.delete(video);
+
+        storageService.deleteFile(videoUrl);
+        if (thumbnailUrl != null) {
+            storageService.deleteFile(thumbnailUrl);
+        }
     }
 
     public Video findVideo(Long videoId) {
