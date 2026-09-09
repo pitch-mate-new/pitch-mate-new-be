@@ -15,6 +15,7 @@ import com.example.pitchmateserver.video.entity.Video;
 import com.example.pitchmateserver.video.service.VideoService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -111,10 +112,15 @@ public class FeedbackService {
                         .build())
                 .toList();
 
-        return feedbackRepository.saveAll(feedbacks)
-                .stream()
-                .map(FeedbackResponse::from)
-                .toList();
+        try {
+            return feedbackRepository.saveAll(feedbacks)
+                    .stream()
+                    .map(FeedbackResponse::from)
+                    .toList();
+        } catch (DataIntegrityViolationException e) {
+            // 처리 도중 영상이 삭제된 경우 (동시성 엣지케이스)
+            throw new BusinessException(ErrorCode.VIDEO_NOT_FOUND);
+        }
     }
 
     public List<FeedbackResponse> getFeedbacksByVideo(Long videoId) {

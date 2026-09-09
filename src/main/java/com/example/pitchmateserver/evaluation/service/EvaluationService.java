@@ -16,6 +16,7 @@ import com.example.pitchmateserver.video.entity.Video;
 import com.example.pitchmateserver.video.service.VideoService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -112,14 +113,20 @@ public class EvaluationService {
         List<Rubric> rubrics = rubricRepository.findAllByOrderByDisplayOrderAsc();
         int maxScore = rubrics.isEmpty() ? 5 : rubrics.get(0).getMaxScore();
 
-        Evaluation evaluation = evaluationRepository.save(Evaluation.builder()
-                .video(video)
-                .evaluator(null)
-                .type(Evaluation.EvaluationType.AI)
-                .comment("AI가 영상을 분석하여 생성한 종합 평가입니다.")
-                .totalScore(0)
-                .maxTotalScore(0)
-                .build());
+        Evaluation evaluation;
+        try {
+            evaluation = evaluationRepository.save(Evaluation.builder()
+                    .video(video)
+                    .evaluator(null)
+                    .type(Evaluation.EvaluationType.AI)
+                    .comment("AI가 영상을 분석하여 생성한 종합 평가입니다.")
+                    .totalScore(0)
+                    .maxTotalScore(0)
+                    .build());
+        } catch (DataIntegrityViolationException e) {
+            // 처리 도중 영상이 삭제된 경우 (동시성 엣지케이스)
+            throw new BusinessException(ErrorCode.VIDEO_NOT_FOUND);
+        }
 
         List<EvaluationScore> scores;
 
