@@ -57,6 +57,7 @@ public class FeedbackController {
             description = """
                     Gemini AI가 영상을 분석하여 구간별 피드백을 생성합니다.
                     **영상 업로드 시 자동으로 실행되므로 별도 호출이 필요 없습니다.**
+                    동기 방식으로 동작하며 Gemini 처리 대기 시간에 따라 응답까지 최대 1~2분 정도 걸릴 수 있습니다.
 
                     **에러 응답**
                     - 401: 인증 토큰 없음 또는 만료
@@ -79,12 +80,14 @@ public class FeedbackController {
 
                     **에러 응답**
                     - 401: 인증 토큰 없음 또는 만료
+                    - 403 (code 4009): 본인 영상이 아니거나 피드백 요청받은 멘토가 아님
                     - 404 (code 4008): 영상을 찾을 수 없음
                     """
     )
     @GetMapping("/api/videos/{videoId}/feedbacks")
     public ResponseEntity<ApiResponse<List<FeedbackResponse>>> getFeedbacksByVideo(
+            @CurrentUser Long userId,
             @PathVariable Long videoId) {
-        return ResponseEntity.ok(ApiResponse.ok(feedbackService.getFeedbacksByVideo(videoId)));
+        return ResponseEntity.ok(ApiResponse.ok(feedbackService.getFeedbacksByVideo(userId, videoId)));
     }
 }

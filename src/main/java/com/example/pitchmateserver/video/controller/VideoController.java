@@ -30,6 +30,7 @@ public class VideoController {
             summary = "영상 업로드",
             description = """
                     영상 파일을 업로드합니다. 업로드 즉시 AI 분석·평가·피드백이 자동으로 시작됩니다.
+                    최대 파일 크기는 500MB입니다.
 
                     **videoType 값**
                     - `UPLOAD`: 기존에 촬영된 영상을 파일로 업로드

@@ -62,13 +62,14 @@ public class EvaluationController {
     @Operation(
             summary = "AI 평가 생성",
             description = """
-                    Gemini AI가 10개 루브릭 기준으로 영상을 평가합니다.
+                    Gemini AI가 20개 루브릭 기준으로 영상을 평가합니다.
                     **영상 업로드 시 자동으로 실행되므로 별도 호출이 필요 없습니다.**
+                    동기 방식으로 동작하며 Gemini 처리 대기 시간에 따라 응답까지 최대 1~2분 정도 걸릴 수 있습니다.
 
-                    **루브릭 항목 (각 10점 만점, 총 100점)**
-                    - 스피치: 발음 정확성, 말하기 속도, 음성 변화, 시선 처리
-                    - 비언어: 제스처, 자세 및 표정
-                    - 전달력·표현력: 논리적 구성, 핵심전달력, 필러워드 빈도, 시간활용
+                    **루브릭 항목** (각 10점 만점, `GET /api/rubrics`에서 전체 조회 - 총점은 100점으로 정규화)
+                    - 스피치(4개): 발음 명확성, 말 속도 적절성, 음성 변화, 발화 안정성
+                    - 비언어(4개): 시선 처리, 제스처 활용, 자세 안정성, 표정 활용
+                    - 전달력·표현력(12개): 핵심 전달력, 논리적 구성, 내용 완성도 등
 
                     **에러 응답**
                     - 401: 인증 토큰 없음 또는 만료
@@ -96,12 +97,14 @@ public class EvaluationController {
 
                     **에러 응답**
                     - 401: 인증 토큰 없음 또는 만료
+                    - 403 (code 4009): 본인 영상이 아니거나 피드백 요청받은 멘토가 아님
                     - 404 (code 4008): 영상을 찾을 수 없음
                     """
     )
     @GetMapping("/api/videos/{videoId}/evaluations")
     public ResponseEntity<ApiResponse<List<EvaluationResponse>>> getEvaluationsByVideo(
+            @CurrentUser Long userId,
             @PathVariable Long videoId) {
-        return ResponseEntity.ok(ApiResponse.ok(evaluationService.getEvaluationsByVideo(videoId)));
+        return ResponseEntity.ok(ApiResponse.ok(evaluationService.getEvaluationsByVideo(userId, videoId)));
     }
 }

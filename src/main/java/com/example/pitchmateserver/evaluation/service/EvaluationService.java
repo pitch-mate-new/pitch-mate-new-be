@@ -177,11 +177,22 @@ public class EvaluationService {
         return EvaluationResponse.from(evaluation);
     }
 
-    public List<EvaluationResponse> getEvaluationsByVideo(Long videoId) {
+    public List<EvaluationResponse> getEvaluationsByVideo(Long userId, Long videoId) {
+        Video video = videoService.findVideo(videoId);
+        checkAccess(userId, video);
         return evaluationRepository.findByVideoIdWithScores(videoId)
                 .stream()
                 .map(EvaluationResponse::from)
                 .toList();
+    }
+
+    private void checkAccess(Long userId, Video video) {
+        boolean isOwner = video.getUser().getId().equals(userId);
+        boolean isRequestedMentor = video.getRequestedMentor() != null
+                && video.getRequestedMentor().getId().equals(userId);
+        if (!isOwner && !isRequestedMentor) {
+            throw new BusinessException(ErrorCode.VIDEO_ACCESS_DENIED);
+        }
     }
 
     public EvaluationResponse getEvaluation(Long evaluationId) {
