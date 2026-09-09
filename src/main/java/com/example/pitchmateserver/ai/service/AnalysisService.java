@@ -28,19 +28,22 @@ public class AnalysisService {
     private final EvaluationService evaluationService;
     private final FeedbackService feedbackService;
     private final SessionService sessionService;
+    private final AnalysisService self;
 
     public AnalysisService(AnalysisRepository analysisRepository,
                            VideoService videoService,
                            GeminiService geminiService,
                            EvaluationService evaluationService,
                            FeedbackService feedbackService,
-                           @Lazy SessionService sessionService) {
+                           @Lazy SessionService sessionService,
+                           @Lazy AnalysisService self) {
         this.analysisRepository = analysisRepository;
         this.videoService = videoService;
         this.geminiService = geminiService;
         this.evaluationService = evaluationService;
         this.feedbackService = feedbackService;
         this.sessionService = sessionService;
+        this.self = self;
     }
 
     @Transactional
@@ -57,7 +60,7 @@ public class AnalysisService {
                         .build()
         );
 
-        runAnalysisAsync(analysis.getId(), video.getId(), video.getVideoUrl(), video.getDescription());
+        self.runAnalysisAsync(analysis.getId(), video.getId(), video.getVideoUrl(), video.getDescription());
 
         return AnalysisResponse.from(analysis);
     }

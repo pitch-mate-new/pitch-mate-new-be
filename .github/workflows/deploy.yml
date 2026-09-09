@@ -55,6 +55,8 @@ jobs:
           SPRING_JPA_HIBERNATE_DDL_AUTO=update
           SERVER_PORT=8080
           SERVER_FORWARD_HEADERS_STRATEGY=framework
+          SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE=500MB
+          SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE=500MB
           EOF
 
           scp -i pitchmate-key.pem -o StrictHostKeyChecking=no \
