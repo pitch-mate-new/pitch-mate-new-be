@@ -17,6 +17,8 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Slf4j
 @Service
@@ -61,7 +63,24 @@ public class AnalysisService {
                         .build()
         );
 
-        self.runAnalysisAsync(analysis.getId(), video.getId(), video.getVideoUrl(), video.getDescription());
+        Long analysisId = analysis.getId();
+        Long videoIdForAsync = video.getId();
+        String videoUrl = video.getVideoUrl();
+        String description = video.getDescription();
+
+        // requestAnalysis()는 uploadVideo()의 트랜잭션에 참여하는 경우가 많아, 커밋 전에
+        // 비동기 스레드가 시작되면 방금 저장한 Analysis row를 아직 못 보고 실패할 수 있다.
+        // 트랜잭션이 실제로 커밋된 뒤에만 비동기 분석을 시작하도록 보장한다.
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    self.runAnalysisAsync(analysisId, videoIdForAsync, videoUrl, description);
+                }
+            });
+        } else {
+            self.runAnalysisAsync(analysisId, videoIdForAsync, videoUrl, description);
+        }
 
         return AnalysisResponse.from(analysis);
     }
