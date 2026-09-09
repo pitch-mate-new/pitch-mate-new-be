@@ -56,9 +56,10 @@ public class SessionService {
         return toSummaryWithScores(sessions);
     }
 
-    public SessionDetailResponse getSessionDetail(Long videoId) {
+    public SessionDetailResponse getSessionDetail(Long userId, Long videoId) {
         Session session = findSessionByVideoId(videoId);
         Video videoEntity = session.getVideo();
+        checkAccess(userId, videoEntity);
         VideoResponse video = VideoResponse.from(videoEntity);
 
         var rawEvals = evaluationRepository.findByVideoIdWithScores(videoId);
@@ -111,9 +112,11 @@ public class SessionService {
                 .build();
     }
 
-    public SessionCompareResponse compareSessions(Long videoId1, Long videoId2) {
+    public SessionCompareResponse compareSessions(Long userId, Long videoId1, Long videoId2) {
         Session s1 = findSessionByVideoId(videoId1);
         Session s2 = findSessionByVideoId(videoId2);
+        checkAccess(userId, s1.getVideo());
+        checkAccess(userId, s2.getVideo());
 
         var eval1 = evaluationRepository.findByVideoIdWithScores(videoId1);
         var eval2 = evaluationRepository.findByVideoIdWithScores(videoId2);
@@ -271,5 +274,14 @@ public class SessionService {
     private Session findSessionByVideoId(Long videoId) {
         return sessionRepository.findByVideoId(videoId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.SESSION_NOT_FOUND));
+    }
+
+    private void checkAccess(Long userId, Video video) {
+        boolean isOwner = video.getUser().getId().equals(userId);
+        boolean isRequestedMentor = video.getRequestedMentor() != null
+                && video.getRequestedMentor().getId().equals(userId);
+        if (!isOwner && !isRequestedMentor) {
+            throw new BusinessException(ErrorCode.VIDEO_ACCESS_DENIED);
+        }
     }
 }

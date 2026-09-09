@@ -43,6 +43,9 @@ public class EvaluationService {
         if (video.getRequestedMentor() == null || !video.getRequestedMentor().getId().equals(mentorId)) {
             throw new BusinessException(ErrorCode.VIDEO_ACCESS_DENIED);
         }
+        if (evaluationRepository.existsByVideoIdAndType(videoId, Evaluation.EvaluationType.MANUAL)) {
+            throw new BusinessException(ErrorCode.EVALUATION_ALREADY_EXISTS);
+        }
 
         Evaluation evaluation = evaluationRepository.save(Evaluation.builder()
                 .video(video)

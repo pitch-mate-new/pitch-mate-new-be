@@ -60,14 +60,16 @@ public class HistoryController {
 
                     **에러 응답**
                     - 401: 인증 토큰 없음 또는 만료
+                    - 403 (code 4009): 본인 영상이 아니거나 피드백 요청받은 멘토가 아님
                     - 404 (code 4015): 세션을 찾을 수 없음
                     """
     )
     @GetMapping("/compare")
     public ResponseEntity<ApiResponse<SessionCompareResponse>> compareSessions(
+            @CurrentUser Long userId,
             @Parameter(description = "비교할 첫 번째 영상 ID") @RequestParam Long videoId1,
             @Parameter(description = "비교할 두 번째 영상 ID") @RequestParam Long videoId2) {
-        return ResponseEntity.ok(ApiResponse.ok(sessionService.compareSessions(videoId1, videoId2)));
+        return ResponseEntity.ok(ApiResponse.ok(sessionService.compareSessions(userId, videoId1, videoId2)));
     }
 
     @Operation(
@@ -93,12 +95,14 @@ public class HistoryController {
 
                     **에러 응답**
                     - 401: 인증 토큰 없음 또는 만료
+                    - 403 (code 4009): 본인 영상이 아니거나 피드백 요청받은 멘토가 아님
                     - 404 (code 4015): 세션을 찾을 수 없음
                     """
     )
     @GetMapping("/video/{videoId}")
     public ResponseEntity<ApiResponse<SessionDetailResponse>> getSessionDetail(
+            @CurrentUser Long userId,
             @PathVariable Long videoId) {
-        return ResponseEntity.ok(ApiResponse.ok(sessionService.getSessionDetail(videoId)));
+        return ResponseEntity.ok(ApiResponse.ok(sessionService.getSessionDetail(userId, videoId)));
     }
 }

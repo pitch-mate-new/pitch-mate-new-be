@@ -49,12 +49,15 @@ public class AuthService {
             throw new BusinessException(ErrorCode.DUPLICATE_NICKNAME);
         }
 
-        String role = "MENTOR".equalsIgnoreCase(request.getRole()) ? "MENTOR" : "MENTEE";
+        String role = request.getRole();
+        if (!"MENTOR".equalsIgnoreCase(role) && !"MENTEE".equalsIgnoreCase(role)) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR);
+        }
         User user = User.builder()
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .nickname(request.getNickname())
-                .role(role)
+                .role(role.toUpperCase())
                 .build();
         return SignupResponse.from(userRepository.save(user));
     }

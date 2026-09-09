@@ -46,6 +46,7 @@ public class EvaluationController {
                     - 403 (code 4009): 해당 영상의 피드백 요청받은 멘토가 아님
                     - 404 (code 4008): 영상을 찾을 수 없음
                     - 404 (code 4014): 루브릭을 찾을 수 없음
+                    - 409 (code 4025): 이미 이 영상에 총평을 작성함
                     """
     )
     @PostMapping("/api/videos/{videoId}/evaluations")
