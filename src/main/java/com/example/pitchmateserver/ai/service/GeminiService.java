@@ -129,6 +129,8 @@ public class GeminiService {
                 - fillerWordCount: '어', '음', '그', '저', '아', '뭐', '이제', '그니까' 등 불필요한 간투사를 영상 전체에서 직접 세어 정확한 횟수 반환.
                 - fillerWords: 실제로 감지된 필러워드만 목록으로 반환.
                 - speakingDurationSeconds: 실제 발화(말소리가 있는) 구간의 총 초 수.
+                - inappropriateExpressionCount: 영상에서 사용된 부적절한 표현(비속어, 욕설, 공격적이거나 비하하는 표현, 차별적 발언 등)의 총 횟수. 없으면 0.
+                - inappropriateExpressions: 실제로 감지된 부적절한 표현을 짧은 문맥과 함께 목록으로 반환. 없으면 빈 배열.
 
                 {
                   "speechRateWpm": <분당 단어 수 (숫자)>,
@@ -136,6 +138,8 @@ public class GeminiService {
                   "fillerWordCount": <필러워드 총 횟수 (숫자)>,
                   "fillerWords": ["감지된", "필러워드", "목록"],
                   "speakingDurationSeconds": <실제 발화 시간 초 (숫자)>,
+                  "inappropriateExpressionCount": <부적절한 표현 총 횟수 (숫자)>,
+                  "inappropriateExpressions": ["감지된 부적절한 표현과 문맥"],
                   "overallSummary": "전반적인 발표 분석 요약 (한국어, 2-3문장)"
                 }
                 """;
@@ -151,6 +155,8 @@ public class GeminiService {
                     node.path("fillerWordCount").asInt(5),
                     node.path("fillerWords").toString(),
                     node.path("speakingDurationSeconds").asDouble(120.0),
+                    node.path("inappropriateExpressionCount").asInt(0),
+                    node.path("inappropriateExpressions").toString(),
                     node.path("overallSummary").asText("AI 분석이 완료되었습니다.")
             );
         } catch (Exception e) {
@@ -339,10 +345,12 @@ public class GeminiService {
             Integer fillerWordCount,
             String fillerWords,
             Double speakingDurationSeconds,
+            Integer inappropriateExpressionCount,
+            String inappropriateExpressions,
             String overallSummary
     ) {
         public static GeminiAnalysisResult fallback() {
-            return new GeminiAnalysisResult(130.0, 10.0, 3, "[\"어\",\"음\"]", 120.0, "AI 분석을 완료했습니다.");
+            return new GeminiAnalysisResult(130.0, 10.0, 3, "[\"어\",\"음\"]", 120.0, 0, "[]", "AI 분석을 완료했습니다.");
         }
     }
 

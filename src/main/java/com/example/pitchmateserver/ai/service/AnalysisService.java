@@ -111,7 +111,9 @@ public class AnalysisService {
                     result.silenceRatio(),
                     result.fillerWordCount(),
                     result.fillerWords(),
-                    result.speakingDurationSeconds()
+                    result.speakingDurationSeconds(),
+                    result.inappropriateExpressionCount(),
+                    result.inappropriateExpressions()
             );
             analysisRepository.save(analysis);
             log.info("분석 완료: analysisId={}", analysisId);

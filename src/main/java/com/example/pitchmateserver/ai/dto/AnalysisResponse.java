@@ -24,6 +24,9 @@ public class AnalysisResponse {
     @JsonRawValue
     private String fillerWords;
     private Double speakingDurationSeconds;
+    private Integer inappropriateExpressionCount;
+    @JsonRawValue
+    private String inappropriateExpressions;
 
     private String errorMessage;
     private LocalDateTime createdAt;
@@ -39,6 +42,8 @@ public class AnalysisResponse {
                 .fillerWordCount(analysis.getFillerWordCount())
                 .fillerWords(analysis.getFillerWords())
                 .speakingDurationSeconds(analysis.getSpeakingDurationSeconds())
+                .inappropriateExpressionCount(analysis.getInappropriateExpressionCount())
+                .inappropriateExpressions(analysis.getInappropriateExpressions())
                 .errorMessage(analysis.getErrorMessage())
                 .createdAt(analysis.getCreatedAt())
                 .updatedAt(analysis.getUpdatedAt())

@@ -48,6 +48,14 @@ public class Analysis {
     @Column(name = "speaking_duration_seconds")
     private Double speakingDurationSeconds;
 
+    // 부적절한 표현(비속어, 공격적/차별적 언어 등) 탐지 횟수
+    @Column(name = "inappropriate_expression_count")
+    private Integer inappropriateExpressionCount;
+
+    // 탐지된 부적절 표현 목록 (JSON 형태로 저장)
+    @Column(name = "inappropriate_expressions", length = 1000)
+    private String inappropriateExpressions;
+
     @Column(name = "error_message")
     private String errorMessage;
 
@@ -64,13 +72,16 @@ public class Analysis {
     }
 
     public void complete(Double speechRateWpm, Double silenceRatio, Integer fillerWordCount,
-                         String fillerWords, Double speakingDurationSeconds) {
+                         String fillerWords, Double speakingDurationSeconds,
+                         Integer inappropriateExpressionCount, String inappropriateExpressions) {
         this.status = AnalysisStatus.COMPLETED;
         this.speechRateWpm = speechRateWpm;
         this.silenceRatio = silenceRatio;
         this.fillerWordCount = fillerWordCount;
         this.fillerWords = fillerWords;
         this.speakingDurationSeconds = speakingDurationSeconds;
+        this.inappropriateExpressionCount = inappropriateExpressionCount;
+        this.inappropriateExpressions = inappropriateExpressions;
     }
 
     public void fail(String errorMessage) {
