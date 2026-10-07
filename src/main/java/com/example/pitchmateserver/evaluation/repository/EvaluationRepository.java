@@ -26,6 +26,8 @@ public interface EvaluationRepository extends JpaRepository<Evaluation, Long> {
 
     void deleteByVideoId(Long videoId);
 
+    void deleteByVideoIdAndType(Long videoId, Evaluation.EvaluationType type);
+
     @Modifying
     @Query("UPDATE Evaluation e SET e.evaluator = null WHERE e.evaluator.id = :evaluatorId")
     void clearEvaluator(@Param("evaluatorId") Long evaluatorId);

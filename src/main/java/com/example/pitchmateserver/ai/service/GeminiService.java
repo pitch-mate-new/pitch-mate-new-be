@@ -7,17 +7,34 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpStatusCodeException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 
 import java.io.IOException;
+import java.net.SocketTimeoutException;
+import java.time.Duration;
 import java.util.*;
+import java.util.function.Supplier;
 
+/**
+ * Gemini 호출 결과를 그대로 반환하거나, 실패하면 예외를 던진다.
+ * 실패를 기본값/임의값으로 대체하지 않는다 — 대체값은 실제 분석 결과와 구분할 수 없어 사용자를 오도한다.
+ */
 @Slf4j
 @Service
 public class GeminiService {
 
-    private static final String GEMINI_BASE_URL = "https://generativelanguage.googleapis.com";
+
+    // QR-REL-02: AI 응답이 60초를 넘기면 중단하고 해당 작업만 FAILED 처리
+    private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(10);
+    private static final Duration READ_TIMEOUT = Duration.ofSeconds(60);
+
+    // 일시적 오류(429, 5xx, 연결 실패) 재시도: 최대 3회 시도, 시도 사이 대기시간
+    private static final int MAX_ATTEMPTS = 3;
+    private static final long[] RETRY_BACKOFF_MS = {5_000, 15_000};
 
     @Value("${gemini.api-key}")
     private String apiKey;
@@ -29,9 +46,16 @@ public class GeminiService {
     private final ObjectMapper objectMapper;
     private final S3StorageService storageService;
 
-    public GeminiService(ObjectMapper objectMapper, S3StorageService storageService) {
+    // STP 6.3.1 결함 주입 테스트에서 WireMock 주소로 바꿀 수 있도록 설정값으로 둔다
+    public GeminiService(ObjectMapper objectMapper, S3StorageService storageService,
+                         @Value("${gemini.base-url:https://generativelanguage.googleapis.com}") String baseUrl) {
+        // read timeout은 응답 대기 시간에만 적용되어 대용량 영상 업로드(요청 본문 전송)는 끊지 않는다
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(CONNECT_TIMEOUT);
+        requestFactory.setReadTimeout(READ_TIMEOUT);
         this.restClient = RestClient.builder()
-                .baseUrl(GEMINI_BASE_URL)
+                .baseUrl(baseUrl)
+                .requestFactory(requestFactory)
                 .build();
         this.objectMapper = objectMapper;
         this.storageService = storageService;
@@ -53,35 +77,41 @@ public class GeminiService {
                 Map.of("file", Map.of("display_name", fileName))
         );
 
-        HttpHeaders initHeaders = restClient.post()
-                .uri("/upload/v1beta/files?key={key}&uploadType=resumable", apiKey)
-                .header("X-Goog-Upload-Protocol", "resumable")
-                .header("X-Goog-Upload-Command", "start")
-                .header("X-Goog-Upload-Header-Content-Length", String.valueOf(fileSize))
-                .header("X-Goog-Upload-Header-Content-Type", mimeType)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(initBody)
-                .retrieve()
-                .toBodilessEntity()
-                .getHeaders();
+        // 업로드 세션은 한 번 실패하면 재사용할 수 없으므로 세션 시작부터 통째로 재시도
+        String uploadResponse = withRetry("파일 업로드", () -> {
+            HttpHeaders initHeaders = restClient.post()
+                    .uri("/upload/v1beta/files?key={key}&uploadType=resumable", apiKey)
+                    .header("X-Goog-Upload-Protocol", "resumable")
+                    .header("X-Goog-Upload-Command", "start")
+                    .header("X-Goog-Upload-Header-Content-Length", String.valueOf(fileSize))
+                    .header("X-Goog-Upload-Header-Content-Type", mimeType)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(initBody)
+                    .retrieve()
+                    .toBodilessEntity()
+                    .getHeaders();
 
-        String uploadUrl = initHeaders.getFirst("x-goog-upload-url");
-        if (uploadUrl == null) {
-            throw new RuntimeException("Gemini File API 업로드 URL을 가져오지 못했습니다.");
-        }
+            String uploadUrl = initHeaders.getFirst("x-goog-upload-url");
+            if (uploadUrl == null) {
+                throw new RuntimeException("Gemini File API 업로드 URL을 가져오지 못했습니다.");
+            }
 
-        // Step 2: 파일 업로드
-        String uploadResponse = restClient.put()
-                .uri(uploadUrl)
-                .header("X-Goog-Upload-Command", "upload, finalize")
-                .header("X-Goog-Upload-Offset", "0")
-                .contentType(MediaType.parseMediaType(mimeType))
-                .body(fileBytes)
-                .retrieve()
-                .body(String.class);
+            // Step 2: 파일 업로드
+            return restClient.put()
+                    .uri(uploadUrl)
+                    .header("X-Goog-Upload-Command", "upload, finalize")
+                    .header("X-Goog-Upload-Offset", "0")
+                    .contentType(MediaType.parseMediaType(mimeType))
+                    .body(fileBytes)
+                    .retrieve()
+                    .body(String.class);
+        });
 
         JsonNode uploadNode = objectMapper.readTree(uploadResponse);
         String fileUri = uploadNode.path("file").path("uri").asText();
+        if (fileUri.isBlank()) {
+            throw new RuntimeException("Gemini File API 응답에 file uri가 없음");
+        }
 
         // Step 3: 파일 처리 완료 대기
         waitForFileReady(uploadNode.path("file").path("name").asText());
@@ -94,18 +124,21 @@ public class GeminiService {
      */
     private void waitForFileReady(String fileName) throws IOException {
         for (int i = 0; i < 20; i++) {
-            try { Thread.sleep(3000); } catch (InterruptedException ignored) {}
+            sleep(3000);
 
-            String statusResponse = restClient.get()
+            String statusResponse = withRetry("파일 상태 조회", () -> restClient.get()
                     .uri("/v1beta/" + fileName + "?key=" + apiKey)
                     .retrieve()
-                    .body(String.class);
+                    .body(String.class));
 
             JsonNode node = objectMapper.readTree(statusResponse);
             String state = node.path("state").asText();
             if ("ACTIVE".equals(state)) {
                 log.info("Gemini 파일 처리 완료: {}", fileName);
                 return;
+            }
+            if ("FAILED".equals(state)) {
+                throw new RuntimeException("Gemini 파일 처리 실패: " + fileName);
             }
             log.info("Gemini 파일 처리 중... state={}", state);
         }
@@ -115,7 +148,7 @@ public class GeminiService {
     /**
      * 영상 분석 - 말 속도, 침묵 비율, 필러워드 등
      */
-    public GeminiAnalysisResult analyzeVideo(String fileUri, String description) {
+    public GeminiAnalysisResult analyzeVideo(String fileUri, String description) throws IOException {
         String descriptionContext = (description != null && !description.isBlank())
                 ? "\n\n영상 설명 (참고): " + description
                 : "";
@@ -144,31 +177,26 @@ public class GeminiService {
                 }
                 """;
 
-        try {
-            String responseText = callGeminiWithVideo(fileUri, prompt);
-            String json = extractJson(responseText);
-            JsonNode node = objectMapper.readTree(json);
+        String responseText = callGeminiWithVideo(fileUri, prompt);
+        JsonNode node = objectMapper.readTree(extractJson(responseText));
 
-            return new GeminiAnalysisResult(
-                    node.path("speechRateWpm").asDouble(130.0),
-                    node.path("silenceRatio").asDouble(10.0),
-                    node.path("fillerWordCount").asInt(5),
-                    node.path("fillerWords").toString(),
-                    node.path("speakingDurationSeconds").asDouble(120.0),
-                    node.path("inappropriateExpressionCount").asInt(0),
-                    node.path("inappropriateExpressions").toString(),
-                    node.path("overallSummary").asText("AI 분석이 완료되었습니다.")
-            );
-        } catch (Exception e) {
-            log.error("Gemini 영상 분석 실패: {}", e.getMessage());
-            return GeminiAnalysisResult.fallback();
-        }
+        // 응답에 값이 빠져 있으면 기본값으로 채우지 않고 실패 처리
+        return new GeminiAnalysisResult(
+                requireNumber(node, "speechRateWpm"),
+                requireNumber(node, "silenceRatio"),
+                (int) Math.round(requireNumber(node, "fillerWordCount")),
+                requireArray(node, "fillerWords"),
+                requireNumber(node, "speakingDurationSeconds"),
+                (int) Math.round(requireNumber(node, "inappropriateExpressionCount")),
+                requireArray(node, "inappropriateExpressions"),
+                node.path("overallSummary").asText(null)
+        );
     }
 
     /**
      * AI 구간 피드백 생성
      */
-    public List<GeminiFeedbackResult> generateFeedbacks(String fileUri, String description, Integer durationSeconds) {
+    public List<GeminiFeedbackResult> generateFeedbacks(String fileUri, String description, Integer durationSeconds) throws IOException {
         String descriptionContext = (description != null && !description.isBlank())
                 ? "\n영상 설명 (참고): " + description + "\n"
                 : "";
@@ -195,28 +223,38 @@ public class GeminiService {
                 ]
                 """;
 
-        try {
-            String responseText = callGeminiWithVideo(fileUri, prompt);
-            String json = extractJson(responseText);
-            JsonNode arrayNode = objectMapper.readTree(json);
-
-            List<GeminiFeedbackResult> results = new ArrayList<>();
-            if (arrayNode.isArray()) {
-                for (JsonNode item : arrayNode) {
-                    double start = item.path("startTimeSeconds").asDouble(0.0);
-                    double end = item.path("endTimeSeconds").asDouble(start + 10.0);
-                    if (durationSeconds != null && durationSeconds > 0) {
-                        start = Math.min(start, durationSeconds);
-                        end = Math.min(end, durationSeconds);
-                    }
-                    results.add(new GeminiFeedbackResult(start, end, item.path("content").asText("피드백을 생성했습니다.")));
-                }
-            }
-            return results;
-        } catch (Exception e) {
-            log.error("Gemini 피드백 생성 실패: {}", e.getMessage());
-            return GeminiFeedbackResult.fallback(durationSeconds);
+        String responseText = callGeminiWithVideo(fileUri, prompt);
+        JsonNode arrayNode = objectMapper.readTree(extractJson(responseText));
+        if (!arrayNode.isArray()) {
+            throw new IllegalStateException("Gemini 피드백 응답이 배열이 아님");
         }
+
+        // 형식이 깨진 항목은 임의 값으로 채우지 않고 버린다
+        List<GeminiFeedbackResult> results = new ArrayList<>();
+        for (JsonNode item : arrayNode) {
+            JsonNode startNode = item.get("startTimeSeconds");
+            JsonNode endNode = item.get("endTimeSeconds");
+            String content = item.path("content").asText("");
+            if (startNode == null || !startNode.isNumber() || endNode == null || !endNode.isNumber() || content.isBlank()) {
+                log.warn("Gemini 피드백 항목 형식 오류, 제외: {}", item);
+                continue;
+            }
+            double start = startNode.asDouble();
+            double end = endNode.asDouble();
+            if (durationSeconds != null && durationSeconds > 0) {
+                start = Math.min(start, durationSeconds);
+                end = Math.min(end, durationSeconds);
+            }
+            if (start < 0 || end < start) {
+                log.warn("Gemini 피드백 구간 오류, 제외: {}", item);
+                continue;
+            }
+            results.add(new GeminiFeedbackResult(start, end, content));
+        }
+        if (results.isEmpty()) {
+            throw new IllegalStateException("Gemini 피드백 응답에 유효한 항목이 없음");
+        }
+        return results;
     }
 
     /**
@@ -262,18 +300,27 @@ public class GeminiService {
             String json = extractJson(responseText);
             JsonNode node = objectMapper.readTree(json);
 
+            // 점수가 빠진 항목은 기본 점수로 채우지 않는다 (EvaluationService에서 누락 시 실패 처리)
             Map<String, GeminiEvalResult> scores = new LinkedHashMap<>();
             node.path("scores").fields().forEachRemaining(entry -> {
                 JsonNode val = entry.getValue();
+                if (!val.path("score").isNumber()) {
+                    log.warn("Gemini 평가 항목 점수 누락, 제외: {}", entry.getKey());
+                    return;
+                }
+                String comment = val.path("comment").asText("");
                 scores.put(entry.getKey(), new GeminiEvalResult(
-                        val.path("score").asInt(5),
-                        val.path("comment").asText("AI 평가 결과입니다.")
+                        val.path("score").asInt(),
+                        comment.isBlank() ? null : comment
                 ));
             });
             if (scores.isEmpty()) {
                 throw new RuntimeException("Gemini 평가 응답에 scores가 없음");
             }
-            String overallComment = node.path("overallComment").asText("AI가 영상을 분석하여 생성한 종합 평가입니다.");
+            String overallComment = node.path("overallComment").asText("");
+            if (overallComment.isBlank()) {
+                throw new RuntimeException("Gemini 평가 응답에 overallComment가 없음");
+            }
             return new GeminiEvaluationResult(scores, overallComment);
         } catch (Exception e) {
             log.error("Gemini 평가 생성 실패: {}", e.getMessage());
@@ -301,12 +348,12 @@ public class GeminiService {
                 )
         );
 
-        String response = restClient.post()
+        String response = withRetry("generateContent", () -> restClient.post()
                 .uri("/v1beta/models/{model}:generateContent?key={key}", model, apiKey)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(body)
                 .retrieve()
-                .body(String.class);
+                .body(String.class));
 
         try {
             JsonNode node = objectMapper.readTree(response);
@@ -337,6 +384,63 @@ public class GeminiService {
         return text.substring(start);
     }
 
+    private static double requireNumber(JsonNode node, String field) {
+        JsonNode v = node.get(field);
+        if (v != null && v.isNumber()) return v.asDouble();
+        if (v != null && v.isTextual()) {
+            try {
+                return Double.parseDouble(v.asText().trim());
+            } catch (NumberFormatException ignored) {
+                // 아래에서 실패 처리
+            }
+        }
+        throw new IllegalStateException("Gemini 응답에 숫자 필드 누락: " + field);
+    }
+
+    private static String requireArray(JsonNode node, String field) {
+        JsonNode v = node.get(field);
+        if (v == null || !v.isArray()) {
+            throw new IllegalStateException("Gemini 응답에 배열 필드 누락: " + field);
+        }
+        return v.toString();
+    }
+
+    /**
+     * 일시적 오류(429, 5xx, 연결 실패)만 재시도. 4xx 등 재시도해도 같은 결과인 오류는 즉시 던진다.
+     * 응답 타임아웃은 재시도하지 않는다 — 60초씩 반복하면 PR-02(5분 내 COMPLETED/FAILED)를 넘길 수 있음.
+     */
+    private <T> T withRetry(String label, Supplier<T> call) {
+        for (int attempt = 1; ; attempt++) {
+            try {
+                return call.get();
+            } catch (RuntimeException e) {
+                if (attempt >= MAX_ATTEMPTS || !isRetryable(e)) throw e;
+                long delay = RETRY_BACKOFF_MS[attempt - 1];
+                log.warn("Gemini {} 일시적 실패, {}ms 후 재시도 ({}/{}): {}", label, delay, attempt, MAX_ATTEMPTS, e.getMessage());
+                sleep(delay);
+            }
+        }
+    }
+
+    private static boolean isRetryable(RuntimeException e) {
+        if (e instanceof HttpStatusCodeException h) {
+            return h.getStatusCode().value() == 429 || h.getStatusCode().is5xxServerError();
+        }
+        if (e instanceof ResourceAccessException) {
+            return !(e.getCause() instanceof SocketTimeoutException);
+        }
+        return false;
+    }
+
+    private static void sleep(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Gemini 대기 중 인터럽트", e);
+        }
+    }
+
     // ========== 결과 DTO ==========
 
     public record GeminiAnalysisResult(
@@ -348,27 +452,13 @@ public class GeminiService {
             Integer inappropriateExpressionCount,
             String inappropriateExpressions,
             String overallSummary
-    ) {
-        public static GeminiAnalysisResult fallback() {
-            return new GeminiAnalysisResult(130.0, 10.0, 3, "[\"어\",\"음\"]", 120.0, 0, "[]", "AI 분석을 완료했습니다.");
-        }
-    }
+    ) {}
 
     public record GeminiFeedbackResult(
             Double startTimeSeconds,
             Double endTimeSeconds,
             String content
-    ) {
-        public static List<GeminiFeedbackResult> fallback(Integer durationSeconds) {
-            int d = (durationSeconds != null && durationSeconds > 0) ? durationSeconds : 30;
-            double third = d / 3.0;
-            return List.of(
-                    new GeminiFeedbackResult(0.0, Math.min(third, d), "도입부에서 명확한 주제 제시가 필요합니다."),
-                    new GeminiFeedbackResult(Math.min(third, d), Math.min(third * 2, d), "이 구간에서 말하기 속도를 조절해보세요."),
-                    new GeminiFeedbackResult(Math.min(third * 2, d), (double) d, "결론 부분에 핵심 내용 요약을 추가해주세요.")
-            );
-        }
-    }
+    ) {}
 
     public record GeminiEvalResult(int score, String comment) {}
 

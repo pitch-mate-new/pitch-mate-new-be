@@ -33,20 +33,24 @@ public class AnalysisResponse {
     private LocalDateTime updatedAt;
 
     public static AnalysisResponse from(Analysis analysis) {
-        return AnalysisResponse.builder()
+        AnalysisResponseBuilder builder = AnalysisResponse.builder()
                 .analysisId(analysis.getId())
                 .videoId(analysis.getVideo().getId())
                 .status(analysis.getStatus().name())
-                .speechRateWpm(analysis.getSpeechRateWpm())
-                .silenceRatio(analysis.getSilenceRatio())
-                .fillerWordCount(analysis.getFillerWordCount())
-                .fillerWords(analysis.getFillerWords())
-                .speakingDurationSeconds(analysis.getSpeakingDurationSeconds())
-                .inappropriateExpressionCount(analysis.getInappropriateExpressionCount())
-                .inappropriateExpressions(analysis.getInappropriateExpressions())
                 .errorMessage(analysis.getErrorMessage())
                 .createdAt(analysis.getCreatedAt())
-                .updatedAt(analysis.getUpdatedAt())
-                .build();
+                .updatedAt(analysis.getUpdatedAt());
+
+        // FR-ANAL-02: 정량 지표는 COMPLETED일 때만 채운다 (평가·피드백 단계에서 실패한 작업의 부분 결과는 노출하지 않음)
+        if (analysis.getStatus() == Analysis.AnalysisStatus.COMPLETED) {
+            builder.speechRateWpm(analysis.getSpeechRateWpm())
+                    .silenceRatio(analysis.getSilenceRatio())
+                    .fillerWordCount(analysis.getFillerWordCount())
+                    .fillerWords(analysis.getFillerWords())
+                    .speakingDurationSeconds(analysis.getSpeakingDurationSeconds())
+                    .inappropriateExpressionCount(analysis.getInappropriateExpressionCount())
+                    .inappropriateExpressions(analysis.getInappropriateExpressions());
+        }
+        return builder.build();
     }
 }

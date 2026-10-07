@@ -64,6 +64,8 @@ public class EvaluationController {
             description = """
                     Gemini AI가 20개 루브릭 기준으로 영상을 평가합니다.
                     **영상 업로드 시 자동으로 실행되므로 별도 호출이 필요 없습니다.**
+                    영상 소유자만 호출할 수 있으며, 이미 생성된 결과가 있으면 새로 만들지 않고 기존 결과를 반환합니다.
+                    실패한 AI 처리를 다시 실행하려면 `POST /api/videos/{videoId}/analysis`를 사용하세요.
                     동기 방식으로 동작하며 Gemini 처리 대기 시간에 따라 응답까지 최대 1~2분 정도 걸릴 수 있습니다.
 
                     **루브릭 항목** (각 10점 만점, `GET /api/rubrics`에서 전체 조회 - 총점은 100점으로 정규화)
@@ -73,7 +75,9 @@ public class EvaluationController {
 
                     **에러 응답**
                     - 401: 인증 토큰 없음 또는 만료
+                    - 403 (code 4009): 영상 소유자가 아님
                     - 404 (code 4008): 영상을 찾을 수 없음
+                    - 500 (code 5000): Gemini AI 처리 실패 (아무것도 저장되지 않음)
                     """
     )
     @PostMapping("/api/videos/{videoId}/evaluations/ai")
@@ -81,7 +85,7 @@ public class EvaluationController {
             @CurrentUser Long userId,
             @PathVariable Long videoId) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.of(SuccessCode.SUCCESS, HttpStatus.CREATED, evaluationService.generateAiEvaluation(videoId)));
+                .body(ApiResponse.of(SuccessCode.SUCCESS, HttpStatus.CREATED, evaluationService.generateAiEvaluation(userId, videoId)));
     }
 
     @Operation(

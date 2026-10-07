@@ -19,6 +19,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.util.List;
 
 @Slf4j
@@ -66,18 +67,30 @@ public class FeedbackService {
     }
 
     /**
-     * API 직접 호출 - Gemini에 영상 업로드 후 피드백 생성
+     * API 직접 호출 - 이미 AI 피드백이 있으면 기존 반환, 없으면 Gemini 업로드 후 생성
      */
     @Transactional
-    public List<FeedbackResponse> generateAiFeedbacks(Long videoId) {
+    public List<FeedbackResponse> generateAiFeedbacks(Long userId, Long videoId) {
         Video video = videoService.findVideo(videoId);
+        if (!video.getUser().getId().equals(userId)) {
+            throw new BusinessException(ErrorCode.VIDEO_ACCESS_DENIED);
+        }
+        // 이미 생성된 AI 피드백이 있으면 중복 생성하지 않고 기존 목록 반환 (AI 평가와 동일한 동작)
+        if (feedbackRepository.existsByVideoIdAndType(videoId, Feedback.FeedbackType.AI)) {
+            return feedbackRepository.findByVideoIdAndTypeOrderByStartTimeSecondsAsc(videoId, Feedback.FeedbackType.AI)
+                    .stream()
+                    .map(FeedbackResponse::from)
+                    .toList();
+        }
         try {
             log.info("Gemini AI 피드백 생성 시작: videoId={}", videoId);
             String fileUri = geminiService.uploadVideoFile(video.getVideoUrl());
             return buildAndSaveFeedbacks(video, fileUri);
+        } catch (BusinessException e) {
+            throw e;
         } catch (Exception e) {
-            log.error("Gemini AI 피드백 생성 실패, 기본값 사용: {}", e.getMessage());
-            return buildAndSaveFeedbacks(video, null);
+            log.error("Gemini AI 피드백 생성 실패: videoId={}, error={}", videoId, e.getMessage());
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -85,21 +98,18 @@ public class FeedbackService {
      * 내부 호출용 - AnalysisService에서 이미 업로드한 fileUri를 전달받아 사용 (Gemini 중복 업로드 방지)
      */
     @Transactional
-    public void generateAiFeedbacksWithUri(Long videoId, String fileUri) {
+    public void generateAiFeedbacksWithUri(Long videoId, String fileUri) throws IOException {
         Video video = videoService.findVideo(videoId);
         buildAndSaveFeedbacks(video, fileUri);
     }
 
-    private List<FeedbackResponse> buildAndSaveFeedbacks(Video video, String fileUri) {
-        List<GeminiService.GeminiFeedbackResult> geminiResults;
-        try {
-            if (fileUri == null) throw new IllegalArgumentException("fileUri 없음, fallback 사용");
-            geminiResults = geminiService.generateFeedbacks(fileUri, video.getDescription(), video.getDurationSeconds());
-            log.info("Gemini AI 피드백 생성 완료: {}개", geminiResults.size());
-        } catch (Exception e) {
-            log.error("Gemini AI 피드백 실패, 기본값 사용: {}", e.getMessage());
-            geminiResults = GeminiService.GeminiFeedbackResult.fallback(video.getDurationSeconds());
-        }
+    /**
+     * Gemini 피드백을 받아 저장한다. Gemini 호출이 실패하면 예외를 던지고 아무것도 저장하지 않는다.
+     */
+    private List<FeedbackResponse> buildAndSaveFeedbacks(Video video, String fileUri) throws IOException {
+        List<GeminiService.GeminiFeedbackResult> geminiResults =
+                geminiService.generateFeedbacks(fileUri, video.getDescription(), video.getDurationSeconds());
+        log.info("Gemini AI 피드백 생성 완료: {}개", geminiResults.size());
 
         List<Feedback> feedbacks = geminiResults.stream()
                 .map(r -> Feedback.builder()

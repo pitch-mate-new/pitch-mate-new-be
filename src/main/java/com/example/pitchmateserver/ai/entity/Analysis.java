@@ -71,10 +71,10 @@ public class Analysis {
         this.status = AnalysisStatus.IN_PROGRESS;
     }
 
-    public void complete(Double speechRateWpm, Double silenceRatio, Integer fillerWordCount,
-                         String fillerWords, Double speakingDurationSeconds,
-                         Integer inappropriateExpressionCount, String inappropriateExpressions) {
-        this.status = AnalysisStatus.COMPLETED;
+    // 지표만 기록하고 상태는 IN_PROGRESS 유지 — 평가/피드백까지 모두 끝나야 complete()
+    public void recordMetrics(Double speechRateWpm, Double silenceRatio, Integer fillerWordCount,
+                              String fillerWords, Double speakingDurationSeconds,
+                              Integer inappropriateExpressionCount, String inappropriateExpressions) {
         this.speechRateWpm = speechRateWpm;
         this.silenceRatio = silenceRatio;
         this.fillerWordCount = fillerWordCount;
@@ -82,6 +82,15 @@ public class Analysis {
         this.speakingDurationSeconds = speakingDurationSeconds;
         this.inappropriateExpressionCount = inappropriateExpressionCount;
         this.inappropriateExpressions = inappropriateExpressions;
+    }
+
+    // 단계 사이 진행 신호 — 오래 갱신되지 않은 작업은 고아 작업으로 정리된다 (QR-REL-04)
+    public void touch() {
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void complete() {
+        this.status = AnalysisStatus.COMPLETED;
     }
 
     public void fail(String errorMessage) {

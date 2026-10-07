@@ -13,6 +13,12 @@ public interface FeedbackRepository extends JpaRepository<Feedback, Long> {
 
     void deleteByVideoId(Long videoId);
 
+    void deleteByVideoIdAndType(Long videoId, Feedback.FeedbackType type);
+
+    boolean existsByVideoIdAndType(Long videoId, Feedback.FeedbackType type);
+
+    List<Feedback> findByVideoIdAndTypeOrderByStartTimeSecondsAsc(Long videoId, Feedback.FeedbackType type);
+
     @Modifying
     @Query("UPDATE Feedback f SET f.author = null WHERE f.author.id = :authorId")
     void clearAuthor(@Param("authorId") Long authorId);

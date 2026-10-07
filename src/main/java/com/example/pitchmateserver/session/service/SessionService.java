@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -40,6 +41,11 @@ public class SessionService {
 
     @Transactional
     public Session createSession(User user, Video video) {
+        // 재분석 시 같은 영상으로 다시 호출되므로 이미 있으면 그대로 반환
+        Optional<Session> existing = sessionRepository.findByVideoId(video.getId());
+        if (existing.isPresent()) {
+            return existing.get();
+        }
         Integer number = sessionRepository.countNextSessionNumber(user.getId());
         return sessionRepository.save(
                 Session.builder()
